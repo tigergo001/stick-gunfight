@@ -1,0 +1,16 @@
+.git
+.gitignore
+.agents
+.codex
+data
+node_modules
+*.log
+.server.pid
+start_mac.command
+start_windows.bat
+game.sh
+desktop
+design
+tests
+README.md
+使用手册.md

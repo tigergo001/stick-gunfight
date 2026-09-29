@@ -197,6 +197,22 @@ function handleProfileApi(req, res) {
   json(405, { ok: false, err: 'method not allowed' });
 }
 
+function handleHealthApi(res) {
+  let ok = false;
+  try {
+    if (db) {
+      db.prepare('SELECT 1').get();
+      ok = true;
+    }
+  } catch (e) {}
+  const body = JSON.stringify({ ok, uptime: Math.round(process.uptime()) });
+  res.writeHead(ok ? 200 : 503, {
+    'Content-Type': 'application/json; charset=utf-8',
+    'Cache-Control': 'no-store',
+  });
+  res.end(body);
+}
+
 // ---------------- 静态文件 ----------------
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -209,6 +225,7 @@ const MIME = {
 };
 function serveStatic(req, res) {
   let urlPath = decodeURIComponent((req.url || '/').split('?')[0]);
+  if (urlPath === '/healthz') return handleHealthApi(res);
   if (urlPath === '/api/profile') return handleProfileApi(req, res);
   if (urlPath === '/api/register') return handleAuthApi(req, res, 'register');
   if (urlPath === '/api/login') return handleAuthApi(req, res, 'login');
@@ -561,3 +578,16 @@ server.on('error', (err) => {
   }
   throw err;
 });
+
+
+let shuttingDown = false;
+function shutdown(signal) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  console.log('收到 ' + signal + ',正在停止服务器…');
+  const force = setTimeout(() => process.exit(1), 5000);
+  force.unref();
+  server.close(() => process.exit(0));
+}
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));

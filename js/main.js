@@ -28,7 +28,8 @@ const View = {
 function defaultServerUrl() {
   try {
     if (location.protocol === 'http:' || location.protocol === 'https:') {
-      return 'ws://' + location.host;
+      const wsProtocol = location.protocol === 'https:' ? 'wss://' : 'ws://';
+      return wsProtocol + location.host;
     }
   } catch (e) {}
   return 'ws://localhost:8080';
