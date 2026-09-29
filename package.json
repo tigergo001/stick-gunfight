@@ -1,0 +1,12 @@
+{
+  "name": "stick-gunfight",
+  "version": "1.0.0",
+  "private": true,
+  "description": "火柴人机枪大战 —— 2D 联机枪战网页游戏(零依赖)",
+  "scripts": {
+    "start": "node server.js",
+    "stop": "./game.sh stop",
+    "restart": "./game.sh restart",
+    "test": "node tests/harness.mjs && node tests/test-net.mjs && SGF_SERVER=\"python3 desktop/server.py\" node tests/test-net.mjs && node tests/test-online-client.mjs && node tests/test-profile.mjs && SGF_SERVER=\"python3 desktop/server.py\" node tests/test-profile.mjs && node tests/test-auth.mjs node && node tests/test-auth.mjs python"
+  }
+}

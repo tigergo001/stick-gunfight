@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>设计预览 · 火柴人机枪大战 v2(待确认)</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0a0e16;
+    color: #dfe8f5;
+    font-family: system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    padding-bottom: 80px;
+  }
+  header {
+    position: sticky; top: 0; z-index: 9;
+    background: linear-gradient(180deg, rgba(13,18,28,.98), rgba(13,18,28,.92));
+    border-bottom: 1px solid rgba(110,160,230,.25);
+    padding: 14px 28px;
+  }
+  header h1 { font-size: 20px; letter-spacing: 2px; }
+  header p { color: #8fa2c0; font-size: 12.5px; margin-top: 4px; }
+  header .tag {
+    display: inline-block; margin-left: 10px; padding: 3px 12px; border-radius: 20px;
+    background: rgba(255,210,74,.15); color: #ffd24a; font-size: 12px; border: 1px solid rgba(255,210,74,.4);
+  }
+  section { max-width: 1100px; margin: 34px auto; padding: 0 28px; }
+  section > h2 {
+    font-size: 17px; letter-spacing: 1px; margin-bottom: 6px; color: #cfe0ff;
+    display: flex; align-items: center; gap: 10px;
+  }
+  section > h2::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, rgba(120,160,220,.4), transparent); }
+  section > .desc { color: #8fa2c0; font-size: 13px; margin-bottom: 14px; line-height: 1.7; }
+  .new {
+    display: inline-block; padding: 1px 8px; border-radius: 4px; font-size: 10.5px;
+    background: rgba(124,232,141,.15); color: #7ce88d; border: 1px solid rgba(124,232,141,.45);
+    font-weight: 700; letter-spacing: 1px;
+  }
+  .canvas-box {
+    background: linear-gradient(160deg, #131a28, #0c111c);
+    border: 1px solid rgba(110,160,230,.22);
+    border-radius: 14px; padding: 22px;
+    box-shadow: 0 16px 50px rgba(0,0,0,.5);
+  }
+  /* ===== 主菜单复刻 ===== */
+  .menu-demo { max-width: 470px; margin: 0 auto; }
+  .profile-card, .wcard, .row, button { font-family: inherit; }
+  .profile-card {
+    display: flex; align-items: center; gap: 12px;
+    background: rgba(255,255,255,.045); border: 1px solid rgba(120,160,220,.2);
+    border-radius: 12px; padding: 10px 14px; margin-bottom: 12px;
+  }
+  .avatar {
+    width: 50px; height: 50px; border-radius: 50%; flex-shrink: 0;
+    background: radial-gradient(circle at 35% 30%, #4d8df0, #2450a8);
+    border: 2px solid rgba(160,200,255,.5);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 800; color: #fff;
+  }
+  .pname { font-weight: 700; font-size: 15px; margin-bottom: 5px; }
+  .xpbar { height: 8px; background: rgba(0,0,0,.5); border-radius: 4px; overflow: hidden; }
+  .xpfill { width: 62%; height: 100%; background: linear-gradient(90deg,#b8842c,#ffd24a); border-radius: 4px; }
+  .pxptext { font-size: 10.5px; color: #8fa2c0; margin-top: 4px; }
+  .section-title {
+    display: flex; align-items: center; gap: 8px; margin: 14px 0 8px;
+    font-size: 12.5px; font-weight: 800; letter-spacing: 2px; color: #9fb4d4;
+  }
+  .section-title::after { content:''; flex:1; height:1px; background: linear-gradient(90deg, rgba(120,160,220,.35), transparent); }
+  .hint { font-size: 10.5px; font-weight: 400; color: #5f7396; letter-spacing: 1px; }
+  button.btn {
+    width: 100%; padding: 12px; border: none; border-radius: 10px; margin: 4px 0;
+    background: linear-gradient(180deg,#3584e3,#2b6bc4); color: #fff; font-size: 15px; font-weight: 700;
+    letter-spacing: 1px; cursor: pointer; box-shadow: 0 4px 14px rgba(43,107,196,.35);
+  }
+  button.btn.campaign {
+    background: linear-gradient(180deg,#7a4de0,#5c34c0);
+    box-shadow: 0 4px 14px rgba(92,52,192,.4);
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+  }
+  .badge { font-size: 11px; background: rgba(0,0,0,.3); padding: 3px 9px; border-radius: 20px; font-weight: 600; }
+  .row { display: flex; align-items: center; gap: 8px; color: #9fb0c8; font-size: 13px; margin: 8px 0; }
+  .row .gap { flex: 1; }
+  .seg { display: flex; gap: 6px; }
+  .seg button {
+    width: auto; padding: 6px 16px; margin: 0; border-radius: 8px; font-size: 12.5px;
+    background: #232b3a; border: 1px solid #3a4a63; color: #9fb0c8; box-shadow: none;
+  }
+  .seg button.on { background: linear-gradient(180deg,#3584e3,#2b6bc4); color: #fff; border-color: #4da3ff; }
+  .seg.aim button.on { background: linear-gradient(180deg,#2fa163,#23854e); border-color: #4de88d; }
+  /* 武器卡 */
+  .weapons { display: grid; grid-template-columns: repeat(2,1fr); gap: 8px; }
+  .wcard {
+    background: rgba(255,255,255,.04); border: 1px solid rgba(120,160,220,.18);
+    border-radius: 11px; padding: 9px 11px; position: relative;
+  }
+  .wcard.selected { border-color: #4da3ff; background: linear-gradient(160deg, rgba(53,132,227,.22), rgba(43,107,196,.1)); box-shadow: 0 0 0 1px #4da3ff; }
+  .wcard.rpg { border-color: rgba(255,150,60,.45); }
+  .wcard .wname { font-weight: 800; font-size: 13px; }
+  .wcard .wdesc { font-size: 10.5px; color: #8fa2c0; margin: 3px 0 6px; }
+  .stat { display: flex; align-items: center; gap: 6px; font-size: 9.5px; color: #6f83a3; margin-top: 3px; }
+  .stat span { width: 38px; }
+  .sbar { flex: 1; height: 4px; background: rgba(0,0,0,.45); border-radius: 2px; }
+  .sfill { height: 100%; background: linear-gradient(90deg,#3d7dd9,#6fb3ff); border-radius: 2px; }
+  .wcard.rpg .sfill { background: linear-gradient(90deg,#d97a2b,#ffb35c); }
+  .lock { position: absolute; top: 8px; right: 10px; font-size: 10px; color: #8fa2c0; }
+  .rpg-tag {
+    position: absolute; top: -9px; right: 10px; font-size: 10px; font-weight: 800;
+    background: #ff9636; color: #1a1005; padding: 1px 8px; border-radius: 8px; letter-spacing: 1px;
+  }
+  /* ===== 准星三态 ===== */
+  .aim-states { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; }
+  .aim-state {
+    background: #0e1420; border: 1px solid rgba(110,160,230,.2); border-radius: 12px;
+    padding: 18px; text-align: center;
+  }
+  .aim-view {
+    height: 130px; border-radius: 8px; position: relative; overflow: hidden;
+    background: linear-gradient(180deg,#141c2c,#1a2333);
+    margin-bottom: 10px;
+  }
+  .aim-label { font-size: 13px; font-weight: 700; }
+  .aim-label small { display: block; font-weight: 400; color: #8fa2c0; font-size: 11px; margin-top: 3px; line-height: 1.6; }
+  /* 简易准星 CSS 画 */
+  .cross { position: absolute; width: 3px; height: 3px; border-radius: 50%; background: #fff; }
+  .cross::before, .cross::after { content:''; position: absolute; background: rgba(255,255,255,.95); }
+  .cross::before { width: 3px; height: 22px; left: 0; top: -9.5px; background: linear-gradient(180deg, transparent 6px, rgba(255,255,255,.95) 6px, rgba(255,255,255,.95) 16px, transparent 16px); }
+  .cross::after { width: 22px; height: 3px; left: -9.5px; top: 0; background: linear-gradient(90deg, transparent 6px, rgba(255,255,255,.95) 6px, rgba(255,255,255,.95) 16px, transparent 16px); }
+  .enemy-dot { position: absolute; width: 14px; height: 30px; border-radius: 7px 7px 3px 3px; background: #ff5d5d; }
+  .enemy-dot::before { content:''; position: absolute; top: -6px; left: 3.5px; width: 8px; height: 8px; border-radius: 50%; background: #ff5d5d; }
+  .state1 .enemy-dot { left: 62%; top: 38px; }
+  .state1 .cross { left: 48%; top: 60px; }
+  .state2 .cross { left: 44%; top: 58px; }
+  .state2 .cross::before { box-shadow: 0 0 8px rgba(255,210,74,.8); }
+  .state2 .cross::after { box-shadow: 0 0 8px rgba(255,210,74,.8); }
+  .aim-ring {
+    position: absolute; left: 32%; top: 38px; width: 64px; height: 64px; border-radius: 50%;
+    border: 2px solid rgba(255,210,74,.55); border-top-color: transparent; transform: rotate(35deg);
+  }
+  .state3 .cross { left: 42%; top: 52px; }
+  .lock-bracket {
+    position: absolute; left: 55%; top: 30px; width: 34px; height: 44px;
+  }
+  .lock-bracket i { position: absolute; width: 10px; height: 10px; border: 2.5px solid #ff5d5d; }
+  .lock-bracket i:nth-child(1) { left:0; top:0; border-right: none; border-bottom: none; border-radius: 4px 0 0 0; }
+  .lock-bracket i:nth-child(2) { right:0; top:0; border-left: none; border-bottom: none; border-radius: 0 4px 0 0; }
+  .lock-bracket i:nth-child(3) { left:0; bottom:0; border-right: none; border-top: none; border-radius: 0 0 0 4px; }
+  .lock-bracket i:nth-child(4) { right:0; bottom:0; border-left: none; border-top: none; border-radius: 0 0 4px 0; }
+  .lock-line {
+    position: absolute; left: 45%; top: 54px; width: 72px; height: 2px; transform-origin: left center;
+    transform: rotate(8deg);
+    background: repeating-linear-gradient(90deg, rgba(255,93,93,.7) 0 6px, transparent 6px 12px);
+  }
+  /* ===== HUD ===== */
+  .hud-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; }
+  .hud-demo {
+    background: linear-gradient(180deg,#141c2c,#101828); border: 1px solid rgba(110,160,230,.2);
+    border-radius: 12px; padding: 14px; position: relative; height: 210px; overflow: hidden;
+  }
+  .hud-demo::before { content:''; position: absolute; inset: 0; background: radial-gradient(circle at 50% 90%, rgba(77,141,240,.08), transparent 70%); }
+  .hud-title { font-size: 13px; font-weight: 700; margin-bottom: 10px; color: #cfe0ff; }
+  .progress-track {
+    height: 14px; background: rgba(0,0,0,.5); border-radius: 7px; position: relative;
+    border: 1px solid rgba(255,255,255,.12); margin-bottom: 26px;
+  }
+  .progress-fill { position: absolute; left:0; top:0; height: 100%; width: 46%;
+    background: linear-gradient(90deg,#2b6bc4,#4da3ff); border-radius: 7px; }
+  .pin { position: absolute; top: -5px; font-size: 12px; }
+  .pin.you { left: 46%; top: -9px; font-size: 15px; }
+  .gate { position: absolute; top: -4px; font-size: 11px; opacity: .85; }
+  .hud-hp { display: flex; align-items: center; gap: 8px; }
+  .hp-label { font-size: 11px; color: #9fb0c8; width: 60px; }
+  .hp-track { flex: 1; height: 12px; background: rgba(0,0,0,.5); border-radius: 6px; overflow: hidden; }
+  .hp-fill { height: 100%; background: linear-gradient(90deg,#2fa163,#5ddc6a); }
+  .hp-fill.armor { background: linear-gradient(90deg,#6f83a3,#aebdd4); }
+  .reload-ring {
+    position: absolute; right: 16px; bottom: 14px; width: 44px; height: 44px; border-radius: 50%;
+    border: 4px solid rgba(255,255,255,.15); border-top-color: #ffd24a; transform: rotate(40deg);
+  }
+  .ammo { position: absolute; right: 16px; bottom: 66px; text-align: right; }
+  .ammo b { font-size: 30px; }
+  .ammo small { color: #8fa2c0; }
+  .hearts { font-size: 14px; letter-spacing: 2px; color: #ff6d6d; }
+  /* ===== 卷轴场景条 ===== */
+  .strip {
+    display: grid; grid-template-columns: repeat(4,1fr); gap: 0;
+    border: 1px solid rgba(110,160,230,.25); border-radius: 12px; overflow: hidden;
+  }
+  .scene { height: 190px; position: relative; padding: 12px; overflow: hidden; }
+  .scene h4 { font-size: 13.5px; margin-bottom: 4px; position: relative; z-index: 2; }
+  .scene .len { font-size: 10.5px; opacity: .7; position: relative; z-index: 2; }
+  .scene .ground { position: absolute; left: 0; right: 0; bottom: 26px; height: 3px; background: rgba(255,255,255,.14); }
+  .scene .fig { position: absolute; bottom: 29px; width: 10px; height: 24px; border-radius: 5px 5px 2px 2px; }
+  .scene .fig::before { content:''; position: absolute; top: -5px; left: 2px; width: 6px; height: 6px; border-radius: 50%; background: inherit; }
+  .scene .prop { position: absolute; bottom: 29px; font-size: 15px; }
+  .scene .exit { position: absolute; right: 8px; bottom: 27px; font-size: 17px; }
+  .s1 { background: linear-gradient(180deg,#1c2436,#232f47 65%,#1b2536 65%); }
+  .s2 { background: linear-gradient(180deg,#152238,#1c3326 65%,#152018 65%); }
+  .s3 { background: linear-gradient(180deg,#2a2338,#4a3a52 65%,#332a26 65%); }
+  .s4 { background: linear-gradient(180deg,#241c2e,#3a2c40 65%,#20242c 65%); }
+  .scene::after { content:''; position: absolute; right: 0; top: 0; bottom: 0; width: 14px;
+    background: repeating-linear-gradient(90deg, rgba(255,210,74,.55) 0 4px, transparent 4px 9px); }
+  .legend { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 12px; font-size: 12px; color: #9fb0c8; }
+  .legend i { font-style: normal; margin-right: 4px; }
+  /* ===== 智商卡 ===== */
+  .iq-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
+  .iq-card {
+    background: rgba(255,255,255,.04); border: 1px solid rgba(120,160,220,.18);
+    border-radius: 12px; padding: 14px; text-align: center;
+  }
+  .iq-card .stars { font-size: 15px; color: #ffd24a; letter-spacing: 3px; }
+  .iq-card .iqname { font-weight: 800; font-size: 14.5px; margin: 6px 0 8px; }
+  .iq-card .row2 { font-size: 11.5px; color: #9fb0c8; line-height: 1.9; }
+  .iq-card .row2 b { color: #e8f0fc; }
+  .iq-card.c1 { border-top: 3px solid #6f83a3; }
+  .iq-card.c2 { border-top: 3px solid #5ddc6a; }
+  .iq-card.c3 { border-top: 3px solid #ffd24a; }
+  .iq-card.c4 { border-top: 3px solid #ff5d5d; }
+  table.plan { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.plan th, table.plan td { padding: 9px 12px; text-align: left; border-bottom: 1px solid rgba(120,160,220,.15); }
+  table.plan th { color: #9fb4d4; font-size: 12px; letter-spacing: 1px; }
+  .pill { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+  .pill.g { background: rgba(124,232,141,.14); color: #7ce88d; }
+  .pill.b { background: rgba(120,180,255,.14); color: #7cb8ff; }
+  .pill.o { background: rgba(255,180,90,.14); color: #ffb45d; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🔥 火柴人机枪大战 v2 · 设计预览<span class="tag">仅供确认 · 非最终成品</span></h1>
+  <p>五大功能:辅助瞄准 / 敌人智商重构(削弱)/ RPG 与坦克 / 横向卷轴闯关 —— 确认后开发。配套文档:<b>design/设计文档-v2.md</b></p>
+</header>
+
+<section>
+  <h2>① 主菜单新布局<span class="new">新增:辅助瞄准开关</span><span class="new">新增:RPG-7 武器卡</span></h2>
+  <div class="canvas-box">
+    <div class="menu-demo">
+      <div class="profile-card">
+        <div class="avatar">Lv.3</div>
+        <div style="flex:1">
+          <div class="pname">无名火柴人</div>
+          <div class="xpbar"><div class="xpfill"></div></div>
+          <div class="pxptext">180 / 300 XP · 击杀 42 · 闯关进度:第 4 关</div>
+        </div>
+      </div>
+      <div class="section-title">🎯 辅助瞄准<span class="hint">联机模式强制关闭</span></div>
+      <div class="row seg aim">
+        <button>关</button>
+        <button class="on">辅助(默认)</button>
+        <button>锁定</button>
+      </div>
+      <div class="section-title">⚔ 武器库<span class="hint">升级自动解锁</span></div>
+      <div class="weapons">
+        <div class="wcard selected"><div class="wname">M249 机枪</div><div class="wdesc">全能 · 100 发弹链</div></div>
+        <div class="wcard"><div class="wname">AK 突击步枪</div><div class="wdesc">单发 17 伤 · 精准点射</div></div>
+        <div class="wcard"><div class="wname">AWM 狙击枪</div><div class="wdesc">单发 46 伤 · 千里之外</div></div>
+        <div class="wcard rpg">
+          <div class="rpg-tag">NEW</div>
+          <div class="wname">💥 RPG-7 火箭筒</div>
+          <div class="wdesc">范围爆炸 · 可自伤 · 克制坦克(×2.5)</div>
+          <div class="wstats">
+            <div class="stat"><span>爆炸</span><div class="sbar"><div class="sfill" style="width:96%"></div></div></div>
+            <div class="stat"><span>射速</span><div class="sbar"><div class="sfill" style="width:14%"></div></div></div>
+          </div>
+          <div class="lock">🔓 Lv.6 解锁</div>
+        </div>
+      </div>
+      <div class="section-title">🎮 战斗模式</div>
+      <button class="btn campaign">🏰 闯关模式<span class="badge">进度:第 4 关 · 城市废墟</span></button>
+      <button class="btn">▶ 单人练习 · 对战机器人</button>
+      <div class="row seg">
+        <button>弱</button><button class="on">中</button><button>强</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>② 辅助瞄准三态(准星表现)</h2>
+  <p class="desc">红色小人 = 敌人。辅助档:准星与敌人夹角 ≤14° 时弹道自动向敌人修正 55%;锁定档:自动瞄准屏幕内最近可见敌人胸口。</p>
+  <div class="aim-states">
+    <div class="aim-state state1">
+      <div class="aim-view"><div class="enemy-dot"></div><div class="cross"></div></div>
+      <div class="aim-label">关<small>纯手动 · 准星即弹道</small></div>
+    </div>
+    <div class="aim-state state2">
+      <div class="aim-view">
+        <div class="enemy-dot"></div><div class="cross"></div>
+        <div class="aim-ring"></div>
+      </div>
+      <div class="aim-label">辅助(默认)<small>夹角 ≤14° 弹道修正 55%<br>准星外圈变金</small></div>
+    </div>
+    <div class="aim-state state3">
+      <div class="aim-view">
+        <div class="enemy-dot"></div><div class="cross"></div>
+        <div class="lock-bracket"><i></i><i></i><i></i><i></i></div>
+        <div class="lock-line"></div>
+      </div>
+      <div class="aim-label">锁定<small>自动锁定最近可见敌人<br>红色四角框 + 锁定虚线</small></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>③ 闯关 HUD(横向卷轴版)<span class="new">Mario 式进度条</span></h2>
+  <div class="hud-row">
+    <div class="hud-demo">
+      <div class="hud-title">闯关进度条</div>
+      <div class="progress-track">
+        <span class="gate" style="left:22%">⚔</span>
+        <span class="gate" style="left:48%">⚔</span>
+        <span class="gate" style="left:70%">📦</span>
+        <span class="gate" style="left:92%">🛡</span>
+        <span class="pin you">▲</span>
+      </div>
+      <div class="hearts">❤❤♡</div>
+      <div style="font-size:11px;color:#8fa2c0;margin-top:4px">第 4 关 · 城市废墟 → 丛林哨所</div>
+      <div style="font-size:11px;color:#8fa2c0">遭遇区 2/3 · 按 E 可登载坦克</div>
+    </div>
+    <div class="hud-demo">
+      <div class="hud-title">血量 / 经验</div>
+      <div class="hud-hp"><span class="hp-label">生命 76</span><div class="hp-track"><div class="hp-fill" style="width:76%"></div></div></div>
+      <div class="hud-hp" style="margin-top:8px"><span class="hp-label">Lv.3</span><div class="hp-track"><div class="hp-fill" style="width:60%;background:linear-gradient(90deg,#b8842c,#ffd24a)"></div></div></div>
+      <div style="font-size:11px;color:#8fa2c0;margin-top:8px">脱战回血 · 护盾 1.6s · 爆头 ×1.7</div>
+    </div>
+    <div class="hud-demo">
+      <div class="hud-title">坦克驾驶(登载后)</div>
+      <div class="hud-hp"><span class="hp-label">🛡 装甲 340</span><div class="hp-track"><div class="hp-fill armor" style="width:68%"></div></div></div>
+      <div class="ammo"><b>1</b> <small>/ 1</small></div>
+      <div class="reload-ring"></div>
+      <div style="position:absolute;left:16px;bottom:14px;font-size:11px;color:#8fa2c0">主炮装填中… · E 键下车</div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>④ 横向卷轴关卡结构(向右推进 · 类马里奥)</h2>
+  <p class="desc">摄像机水平跟随,向右推进触发遭遇战(红色闸门封锁,清空放行)。一个关卡 = 3~5 个场景段拼接,总宽 4800~8000px。</p>
+  <div class="strip">
+    <div class="scene s1">
+      <h4>🏙 城市废墟</h4><div class="len">1600px · 教学</div>
+      <div class="ground"></div>
+      <div class="fig" style="left:60px;background:#4da3ff"></div>
+      <div class="prop" style="left:220px">📦</div>
+      <div class="fig" style="left:420px;background:#ff8d8d"></div>
+      <div class="prop" style="left:560px">🛢</div>
+    </div>
+    <div class="scene s2">
+      <h4>🌲 丛林哨所</h4><div class="len">1600px · 遭遇×2</div>
+      <div class="ground"></div>
+      <div class="fig" style="left:180px;background:#ff8d8d"></div>
+      <div class="prop" style="left:400px">📦</div>
+      <div class="fig" style="left:640px;background:#ffb45d"></div>
+      <div class="prop" style="left:520px">🪖</div>
+    </div>
+    <div class="scene s3">
+      <h4>🏜 沙漠公路</h4><div class="len">1600px · 遭遇×2 + 补给</div>
+      <div class="ground"></div>
+      <div class="prop" style="left:150px">🚙</div>
+      <div class="fig" style="left:340px;background:#ffb45d"></div>
+      <div class="prop" style="left:520px">📦</div>
+      <div class="fig" style="left:700px;background:#d78cff"></div>
+    </div>
+    <div class="scene s4">
+      <h4>🏰 军事基地(关底)</h4><div class="len">1600px · 🛡 坦克 BOSS</div>
+      <div class="ground"></div>
+      <div class="fig" style="left:80px;background:#4da3ff"></div>
+      <div class="prop" style="left:460px;font-size:22px">🛡💀</div>
+      <div class="exit">🚁 撤离</div>
+    </div>
+  </div>
+  <div class="legend">
+    <span><i>🔵🟥</i>我方 / 驻守敌人</span>
+    <span><i>⚔</i>遭遇战(闸门封锁)</span>
+    <span><i>📦</i>补给箱(血包+弹药)</span>
+    <span><i>🛢🪖🚙</i>掩体道具</span>
+    <span><i>🛡💀</i>坦克 BOSS</span>
+    <span><i>🚁</i>撤离点(通关)</span>
+  </div>
+</section>
+
+<section>
+  <h2>⑤ 敌人智商重构(整体削弱)</h2>
+  <p class="desc">智商与「品类」(普通/精英/重装/狙击)正交:品类决定血量与武器,智商决定打法。名牌显示 <b>★★ 精英·刀锋</b>。</p>
+  <div class="iq-grid">
+    <div class="iq-card c1">
+      <div class="stars">★</div>
+      <div class="iqname">新兵</div>
+      <div class="row2">射速 <b>×0.50</b><br>准确度 <b>很差</b><br>反应 <b>0.6~1.2s</b><br>预判走位 <b>无</b></div>
+    </div>
+    <div class="iq-card c2">
+      <div class="stars">★★</div>
+      <div class="iqname">老兵</div>
+      <div class="row2">射速 <b>×0.75</b><br>准确度 <b>一般</b><br>反应 <b>0.4~0.8s</b><br>预判走位 <b>弱</b></div>
+    </div>
+    <div class="iq-card c3">
+      <div class="stars">★★★</div>
+      <div class="iqname">精英</div>
+      <div class="row2">射速 <b>×1.00</b><br>准确度 <b>较准</b><br>反应 <b>0.2~0.5s</b><br>预判走位 <b>有</b></div>
+    </div>
+    <div class="iq-card c4">
+      <div class="stars">★★★★</div>
+      <div class="iqname">王牌</div>
+      <div class="row2">射速 <b>×1.15</b><br>准确度 <b>很准</b><br>反应 <b>0.1~0.35s</b><br>预判走位 <b>强</b></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>⑥ 实施分期(确认后执行)</h2>
+  <table class="plan">
+    <tr><th>期</th><th>内容</th><th>说明</th><th>预估</th></tr>
+    <tr><td><span class="pill g">P1</span></td><td>辅助瞄准 + 敌人智商重构</td><td>不动现有玩法结构,低风险快交付</td><td>0.5 天</td></tr>
+    <tr><td><span class="pill g">P2</span></td><td>RPG-7 + 爆炸物系统升级</td><td>复用油桶爆炸体系,新增自伤与弹种</td><td>0.5 天</td></tr>
+    <tr><td><span class="pill b">P3</span></td><td>坦克(玩家载具 + 敌方 BOSS)</td><td>登载/主炮/装甲血条/弱点机制</td><td>1 天</td></tr>
+    <tr><td><span class="pill o">P4</span></td><td>横向卷轴闯关(摄像机 + 分段地图 + 触发区 + 进度条)</td><td>大版本,建议独立分支;联机玩法不受影响</td><td>1.5~2 天</td></tr>
+    <tr><td><span class="pill o">P5</span></td><td>新场景美术 / 音效 / 数值平衡</td><td>打磨与回归测试</td><td>0.5 天</td></tr>
+  </table>
+</section>
+
+</body>
+</html>

@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>火柴人机枪大战 · Stick Gunfight</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="css/style.css?v=1.4.0">
+</head>
+<body>
+  <canvas id="game"></canvas>
+
+  <div id="login">
+    <div class="login-panel">
+      <h1>🔥 火柴人机枪大战</h1>
+      <div class="sub">STICK GUNFIGHT · 请登录后开始游戏</div>
+      <input id="loginName" placeholder="用户名(2-12 字符)" maxlength="12" autocomplete="username">
+      <input id="loginPass" type="password" placeholder="密码(至少 4 位)" maxlength="24" autocomplete="current-password">
+      <div class="login-btns">
+        <button id="btnLogin">登 录</button>
+        <button id="btnRegister" class="secondary">注 册</button>
+      </div>
+      <div id="loginStatus"></div>
+      <div class="login-tip">首次游玩请先点「注册」创建账号。账号与战绩存在服务器 SQLite,换设备用同一账号登录即可找回进度。</div>
+    </div>
+  </div>
+
+  <div id="menu" class="hidden">
+    <div class="panel">
+      <div class="menu-head">
+        <h1>🔥 火柴人机枪大战</h1>
+        <div class="sub">STICK GUNFIGHT · 2D 联机枪战</div>
+      </div>
+
+      <div class="menu-body">
+        <div class="menu-col">
+          <div class="profile-card">
+            <div class="avatar" id="pAvatar">Lv.<b id="pLevel">1</b></div>
+            <div class="pinfo">
+              <div class="pname" id="pNameTitle">无名火柴人</div>
+              <div class="xpbar"><div class="xpfill" id="pXpFill" style="width:0%"></div></div>
+              <div class="pxptext" id="pXpText">0 / 100 XP</div>
+            </div>
+            <button id="btnLogout" class="logout" title="退出登录">⏻</button>
+          </div>
+
+          <input id="nameInput" class="hidden" maxlength="10" autocomplete="off">
+
+          <div class="section-title">⚔ 武器库<span class="hint">升级解锁</span></div>
+          <div class="weapons" id="weaponList"></div>
+        </div>
+
+        <div class="menu-col">
+          <div class="section-title">⚔ 战斗模式</div>
+
+          <button id="btnCampaign" class="campaign">🏰 闯关模式<span class="badge" id="campBest">进度:第 1 / 50 关</span></button>
+          <div class="row" id="campRow">
+            <span>起始关卡</span>
+            <button class="mini" id="campMinus">−</button>
+            <span class="num" id="campStage">1</span>
+            <button class="mini" id="campPlus">+</button>
+            <span class="gap"></span>
+            <span class="dim">每关 5 命 · 50 关</span>
+          </div>
+
+          <button id="btnSolo">▶ 单人练习 · 对战机器人</button>
+          <div class="row">
+            <span>敌人</span>
+            <button class="mini" id="enemyMinus">−</button>
+            <span class="num" id="enemyCount">2</span>
+            <button class="mini" id="enemyPlus">+</button>
+            <span class="gap"></span>
+            <span>队友</span>
+            <button class="mini" id="allyMinus">−</button>
+            <span class="num" id="allyCount">1</span>
+            <button class="mini" id="allyPlus">+</button>
+          </div>
+          <div class="row">
+            <span>智商</span>
+            <button class="mini diff" id="diffWeak">弱</button>
+            <button class="mini diff active" id="diffMedium">中</button>
+            <button class="mini diff" id="diffStrong">强</button>
+            <span class="gap"></span>
+            <span>辅助</span>
+            <button class="mini diff" id="aimOff">关</button>
+            <button class="mini diff active" id="aimAssistBtn">辅</button>
+            <button class="mini diff" id="aimLockBtn">锁</button>
+          </div>
+
+          <button id="btnOnline" class="secondary">🌐 联机对战 ▾</button>
+          <div id="onlineOpts" class="hidden">
+            <div class="row">
+              <input id="srvInput" placeholder="ws://localhost:8080">
+              <input id="roomInput" placeholder="房间号" value="ROOM1" maxlength="8">
+            </div>
+            <button id="btnJoin">加入战斗</button>
+          </div>
+          <div id="netStatus"></div>
+
+          <button id="btnResume" class="secondary hidden">↩ 返回战场 (Esc)</button>
+          <button id="btnQuit" class="ghost hidden">退出到主菜单</button>
+        </div>
+      </div>
+
+      <div class="menu-foot">
+        <b>操作</b> WASD 移动 · 空格 跳 · S+空格 下落 · 鼠标射击 · R 换弹 · Tab 战绩 · Esc 菜单
+        <span class="sep">|</span>
+        联机:<code>node server.js</code> 后同一地址、相同房间号
+      </div>
+    </div>
+  </div>
+
+  <script src="js/config.js?v=1.4.0"></script>
+  <script src="js/utils.js?v=1.4.0"></script>
+  <script src="js/audio.js?v=1.4.0"></script>
+  <script src="js/input.js?v=1.4.0"></script>
+  <script src="js/map.js?v=1.4.0"></script>
+  <script src="js/particles.js?v=1.4.0"></script>
+  <script src="js/stickman.js?v=1.4.0"></script>
+  <script src="js/weapons.js?v=1.4.0"></script>
+  <script src="js/entities.js?v=1.4.0"></script>
+  <script src="js/bots.js?v=1.4.0"></script>
+  <script src="js/net.js?v=1.4.0"></script>
+  <script src="js/hud.js?v=1.4.0"></script>
+  <script src="js/game.js?v=1.4.0"></script>
+  <script src="js/main.js?v=1.4.0"></script>
+</body>
+</html>
