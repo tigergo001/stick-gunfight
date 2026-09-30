@@ -12,6 +12,7 @@ const ROOT_URL = 'http://localhost:' + PORT;
 const BASE = ROOT_URL + '/api/profile';
 const SERVER_CMD = (process.env.SGF_SERVER || 'node server.js').split(' ');
 const NAME = '测试' + (Date.now() % 100000); // 唯一用户名
+const REG_CODE = process.env.SGF_REG_CODE !== undefined ? process.env.SGF_REG_CODE : 'sgf2026';
 
 // 自愈:清掉上次运行残留在测试端口上的进程
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
@@ -56,7 +57,7 @@ try {
   // 注册账号(档案接口需要登录)
   const reg = await (await fetch(ROOT_URL + '/api/register', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name: NAME, pass: 'pass1234' }),
+    body: JSON.stringify({ name: NAME, pass: 'pass1234', code: REG_CODE }),
   })).json();
   assert(reg.ok && reg.token, '注册账号并获取令牌');
   const H = { 'Content-Type': 'application/json', 'X-SGF-Token': reg.token };

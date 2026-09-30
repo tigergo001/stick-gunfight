@@ -36,12 +36,17 @@ const Stickman = {
 
   draw(ctx, f) {
     const x = f.x, y = f.y, face = f.face || 1;
-    const main = f.color || f.teamColor || CFG.COLORS.BLUE;
+    // 皮肤:彩虹循环色(随存活时间流转)/ 幽灵透明 / 暗黑红眼
+    const skinBody = f.skinBody || null;
+    let main = skinBody === 'rainbow'
+      ? 'hsl(' + Math.floor(((f.animT || 0) * 160) % 360) + ',95%,62%)'
+      : (skinBody || f.color || f.teamColor || CFG.COLORS.BLUE);
     const dark = 'rgba(0,0,0,0.55)';
     const aim = f.aim || 0;
 
     ctx.save();
     ctx.globalAlpha = (f.alpha !== undefined ? f.alpha : 1);
+    if (f.skinAlpha !== undefined) ctx.globalAlpha *= f.skinAlpha;
     // 体型缩放(巨型 BOSS)
     const sc = f.scale || 1;
     if (sc !== 1) {
@@ -101,7 +106,7 @@ const Stickman = {
     ctx.lineWidth = 3;
     ctx.stroke();
     // 眼睛
-    ctx.fillStyle = '#e8f0ff';
+    ctx.fillStyle = f.skinEye || '#e8f0ff';
     ctx.beginPath();
     ctx.arc(hx + face * 3.2, hy - 1, 1.6, 0, TAU);
     ctx.fill();
@@ -154,6 +159,15 @@ const Stickman = {
       ctx.fillStyle = '#fff';
       ctx.beginPath(); ctx.arc(0, 0, 3.5, 0, TAU); ctx.fill();
       ctx.restore();
+    }
+
+    // ---- 皮肤光环 ----
+    if (f.skinAura && !f.dead) {
+      ctx.strokeStyle = f.skinAura;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(x, y - 30, 30 + Math.sin((f.animT || 0) * 5) * 3, 0, TAU);
+      ctx.stroke();
     }
 
     // ---- 重生护盾 / 无敌增益 ----

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>火柴人机枪大战 · Stick Gunfight</title>
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="css/style.css?v=1.4.0">
+  <link rel="stylesheet" href="css/style.css?v=1.5.0">
 </head>
 <body>
   <canvas id="game"></canvas>
@@ -16,6 +16,7 @@
       <div class="sub">STICK GUNFIGHT · 请登录后开始游戏</div>
       <input id="loginName" placeholder="用户名(2-12 字符)" maxlength="12" autocomplete="username">
       <input id="loginPass" type="password" placeholder="密码(至少 4 位)" maxlength="24" autocomplete="current-password">
+      <input id="regCode" type="password" placeholder="注册口令(仅注册时需要,向房主索取)" maxlength="24" autocomplete="off">
       <div class="login-btns">
         <button id="btnLogin">登 录</button>
         <button id="btnRegister" class="secondary">注 册</button>
@@ -46,8 +47,15 @@
 
           <input id="nameInput" class="hidden" maxlength="10" autocomplete="off">
 
+          <div class="section-title">🎨 皮肤<span class="hint">升级 / 口令解锁</span></div>
+          <div class="skins" id="skinList"></div>
           <div class="section-title">⚔ 武器库<span class="hint">升级解锁</span></div>
           <div class="weapons" id="weaponList"></div>
+          <div class="author-row">
+            <input id="authorCode" placeholder="🔑 作者模式" maxlength="6" autocomplete="off">
+            <button id="btnAuthor" class="mini">解锁</button>
+          </div>
+          <div id="authorStatus"></div>
         </div>
 
         <div class="menu-col">
@@ -94,6 +102,10 @@
               <input id="roomInput" placeholder="房间号" value="ROOM1" maxlength="8">
             </div>
             <button id="btnJoin">加入战斗</button>
+            <div class="row">
+              <input id="invName" placeholder="对方用户名(邀请对战)" maxlength="16">
+              <button id="btnInvite" class="mini">邀请对战</button>
+            </div>
           </div>
           <div id="netStatus"></div>
 
@@ -110,19 +122,26 @@
     </div>
   </div>
 
-  <script src="js/config.js?v=1.4.0"></script>
-  <script src="js/utils.js?v=1.4.0"></script>
-  <script src="js/audio.js?v=1.4.0"></script>
-  <script src="js/input.js?v=1.4.0"></script>
-  <script src="js/map.js?v=1.4.0"></script>
-  <script src="js/particles.js?v=1.4.0"></script>
-  <script src="js/stickman.js?v=1.4.0"></script>
-  <script src="js/weapons.js?v=1.4.0"></script>
-  <script src="js/entities.js?v=1.4.0"></script>
-  <script src="js/bots.js?v=1.4.0"></script>
-  <script src="js/net.js?v=1.4.0"></script>
-  <script src="js/hud.js?v=1.4.0"></script>
-  <script src="js/game.js?v=1.4.0"></script>
-  <script src="js/main.js?v=1.4.0"></script>
+  <!-- 好友对战邀请 toast -->
+  <div id="invToast" class="hidden">
+    <span id="invText"></span>
+    <button id="btnInvYes" class="mini">接受</button>
+    <button id="btnInvNo" class="mini">拒绝</button>
+  </div>
+
+  <script src="js/config.js?v=1.5.0"></script>
+  <script src="js/utils.js?v=1.5.0"></script>
+  <script src="js/audio.js?v=1.5.0"></script>
+  <script src="js/input.js?v=1.5.0"></script>
+  <script src="js/map.js?v=1.5.0"></script>
+  <script src="js/particles.js?v=1.5.0"></script>
+  <script src="js/stickman.js?v=1.5.0"></script>
+  <script src="js/weapons.js?v=1.5.0"></script>
+  <script src="js/entities.js?v=1.5.0"></script>
+  <script src="js/bots.js?v=1.5.0"></script>
+  <script src="js/net.js?v=1.5.0"></script>
+  <script src="js/hud.js?v=1.5.0"></script>
+  <script src="js/game.js?v=1.5.0"></script>
+  <script src="js/main.js?v=1.5.0"></script>
 </body>
 </html>

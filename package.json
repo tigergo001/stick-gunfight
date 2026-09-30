@@ -7,6 +7,6 @@
     "start": "node server.js",
     "stop": "./game.sh stop",
     "restart": "./game.sh restart",
-    "test": "node tests/harness.mjs && node tests/test-net.mjs && SGF_SERVER=\"python3 desktop/server.py\" node tests/test-net.mjs && node tests/test-online-client.mjs && node tests/test-profile.mjs && SGF_SERVER=\"python3 desktop/server.py\" node tests/test-profile.mjs && node tests/test-auth.mjs node && node tests/test-auth.mjs python"
+    "test": "node tests/harness.mjs && node tests/test-net.mjs && SGF_SERVER=\"python3 desktop/server.py\" node tests/test-net.mjs && node tests/test-online-client.mjs && node tests/test-profile.mjs && SGF_SERVER=\"python3 desktop/server.py\" node tests/test-profile.mjs && node tests/test-auth.mjs node && node tests/test-auth.mjs python && node tests/test-friends.mjs && SGF_SERVER=\"python3 desktop/server.py\" node tests/test-friends.mjs"
   }
 }

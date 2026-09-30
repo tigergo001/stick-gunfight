@@ -99,7 +99,7 @@ h1 {
   gap: 20px;
   min-height: 0;
 }
-.menu-col { display: flex; flex-direction: column; min-width: 0; }
+.menu-col { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
 
 /* 玩家档案 */
 .profile-card {
@@ -197,8 +197,38 @@ button.hidden { display: none; }
 .row #srvInput { flex: 2; min-width: 0; }
 .row #roomInput { flex: 1; min-width: 70px; }
 
-/* 武器库(紧凑卡片) */
-.weapons { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+.skins { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 4px; }
+.skchip {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 9px; border-radius: 16px; font-size: 11px; color: #cfe0ff;
+  background: rgba(255,255,255,0.05); border: 1px solid rgba(120,160,220,0.25);
+  cursor: pointer; user-select: none;
+  transition: border-color 0.12s, background 0.12s;
+}
+.skchip:hover { border-color: rgba(120,180,255,0.55); }
+.skchip.selected { border-color: #4de88d; background: rgba(93,220,106,0.12); box-shadow: 0 0 0 1px #4de88d; }
+.skchip.locked { opacity: 0.4; cursor: not-allowed; }
+.skchip .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+
+/* 武器库(紧凑卡片,超高时区域内滚动) */
+.weapons {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  align-content: start;
+  padding-right: 3px;
+  scrollbar-width: thin;
+  scrollbar-color: #35507a transparent;
+  /* 底部渐隐提示可下翻 */
+  -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 14px), transparent);
+  mask-image: linear-gradient(180deg, #000 calc(100% - 14px), transparent);
+}
+.weapons::-webkit-scrollbar { width: 6px; }
+.weapons::-webkit-scrollbar-thumb { background: #35507a; border-radius: 3px; }
+.weapons::-webkit-scrollbar-track { background: transparent; }
 .wcard {
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(120, 160, 220, 0.18);
@@ -209,6 +239,9 @@ button.hidden { display: none; }
   transition: border-color 0.12s, background 0.12s, transform 0.08s;
 }
 .wcard:hover { border-color: rgba(120, 180, 255, 0.5); background: rgba(255, 255, 255, 0.07); }
+.wcard.author { border-color: rgba(255,180,93,0.55); background: linear-gradient(160deg, rgba(255,150,54,0.14), rgba(255,180,93,0.05)); }
+.wcard.author.selected { border-color: #ffb45d; box-shadow: 0 0 0 1px #ffb45d; }
+.wcard.author .wname { color: #ffce8a; }
 .wcard.selected {
   border-color: #4da3ff;
   background: linear-gradient(160deg, rgba(53, 132, 227, 0.22), rgba(43, 107, 196, 0.1));
@@ -225,6 +258,22 @@ button.hidden { display: none; }
 .stat span { width: 22px; flex-shrink: 0; }
 .sbar { flex: 1; height: 3px; background: rgba(0, 0, 0, 0.45); border-radius: 2px; overflow: hidden; }
 .sfill { height: 100%; background: linear-gradient(90deg, #3d7dd9, #6fb3ff); border-radius: 2px; }
+
+/* 作者模式(低调) */
+.author-row { display: flex; gap: 6px; margin-top: 6px; }
+.author-row input {
+  flex: 1; margin-bottom: 0; padding: 5px 10px;
+  font-size: 11px; color: #7d8fab; text-align: center;
+  border-style: dashed; opacity: 0.55;
+}
+.author-row input:focus { opacity: 1; }
+.author-row button.mini {
+  width: auto; padding: 0 14px; margin: 0;
+  font-size: 11px; color: #7d8fab; box-shadow: none;
+}
+#authorStatus { min-height: 14px; font-size: 10.5px; text-align: left; margin-top: 3px; color: #6f83a3; }
+#authorStatus.ok { color: #7cd98f; }
+#authorStatus.err { color: #ff7d6d; }
 
 #netStatus { min-height: 16px; margin-top: 4px; font-size: 12px; text-align: center; }
 #netStatus.err { color: #ff7d6d; }
@@ -266,3 +315,26 @@ button.hidden { display: none; }
 @media (prefers-reduced-motion: reduce) {
   button, .wcard { transition: none; }
 }
+
+/* ===== 好友对战邀请 toast ===== */
+#invToast {
+  position: fixed;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(160deg, rgba(20, 27, 42, 0.97), rgba(10, 14, 24, 0.97));
+  border: 1px solid rgba(110, 160, 230, 0.4);
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: #dfe9f6;
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.6);
+  white-space: nowrap;
+}
+#invToast.hidden { display: none !important; }
+#invText { max-width: 60vw; overflow: hidden; text-overflow: ellipsis; }
+#invToast button { flex: none; }

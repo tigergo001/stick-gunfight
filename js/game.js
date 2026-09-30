@@ -70,7 +70,8 @@ class Game {
     // 难度 → 智商:弱=新兵,中=老兵,强=精英
     const diffIq = { weak: 1, medium: 2, strong: 3 }[diff];
     // 本地玩家(蓝队,自选武器)
-    this.local = new LocalPlayer({ name: opts.name || '你', team: 'blue', gun: opts.weapon });
+    this.local = new LocalPlayer({ name: opts.name || '你', team: 'blue', gun: opts.weapon, skin: opts.skin });
+    this.applySkinVisuals(this.local);
     this.placeAtSpawn(this.local);
     this.fighters.push(this.local);
     // 队友机器人
@@ -104,7 +105,8 @@ class Game {
       exitX: 0, levelW: 0,
       encounters: [], gates: [], scene: '',
     };
-    this.local = new LocalPlayer({ name: opts.name || '你', team: 'blue', gun: opts.weapon });
+    this.local = new LocalPlayer({ name: opts.name || '你', team: 'blue', gun: opts.weapon, skin: opts.skin });
+    this.applySkinVisuals(this.local);
     this.buildScrollLevel(stage);
     this.fighters.push(this.local);
     // 战场停放载具(第 3/6/9…关坦克,第 2/5/8…关装甲车),E 登载
@@ -262,11 +264,12 @@ class Game {
     this.session = { kills: 0, deaths: 0, xp: 0, bestStreak: 0, stageCleared: 0 };
   }
 
-  startOnline(w, weapon) {
+  startOnline(w, weapon, skin) {
     this.reset();
     this.mode = 'online';
     Arena.buildClassic();
-    this.local = new LocalPlayer({ id: w.id, name: w.name, team: w.team, gun: weapon });
+    this.local = new LocalPlayer({ id: w.id, name: w.name, team: w.team, gun: weapon, skin });
+    this.applySkinVisuals(this.local);
     this.local.x = w.x; this.local.y = w.y;
     this.fighters.push(this.local);
     for (const p of w.players || []) {
@@ -341,6 +344,24 @@ class Game {
     for (let i = this.killfeed.length - 1; i >= 0; i--) {
       this.killfeed[i].t += dt;
       if (this.killfeed[i].t > 4.5) this.killfeed.splice(i, 1);
+    }
+    // 皮肤拖尾(烈焰/冰霜/电光/霓虹)
+    const skinDef = this.local && this.local.skin ? CFG.SKINS.find(k => k.id === this.local.skin) : null;
+    if (skinDef && skinDef.trail && this.local.alive && Math.abs(this.local.vx) > 120 &&
+        Math.random() < 0.5 && Particles.list.length < 400) {
+      const colors = {
+        ember: ['#ff7a3c', '#ffd24a'], frost: ['#7cd0ff', '#cfeaff'],
+        spark: ['#ffe95c', '#fff'], rainbow: null,
+      };
+      let col;
+      if (skinDef.trail === 'spark') col = colors.spark[Math.random() < 0.5 ? 0 : 1];
+      else if (skinDef.body === 'rainbow') col = 'hsl(' + Math.floor((this.time * 160) % 360) + ',90%,65%)';
+      else col = pick(colors[skinDef.trail] || ['#fff']);
+      Particles.spawn({
+        type: 'dot', x: this.local.x - this.local.face * 8 + rand(-4, 4), y: this.local.y - rand(10, 40),
+        vx: -this.local.vx * 0.08, vy: rand(-40, -6),
+        size: rand(1.5, 3), color: col, life: rand(0.25, 0.5),
+      });
     }
     // 氛围浮尘
     if (Math.random() < 0.05 && Particles.list.length < 80) Particles.dust();
@@ -808,7 +829,9 @@ class Game {
 
   unlockedWeapons() {
     const lvl = this.localLevel();
-    return this.weaponOrder().filter(id => CFG.WEAPONS[id].minLevel <= lvl);
+    const extra = this.authorUnlocks || []; // 作者模式解锁的武器
+    return this.weaponOrder().filter(id =>
+      CFG.WEAPONS[id].minLevel <= lvl || extra.indexOf(id) >= 0);
   }
 
   setWeapon(f, id) {
@@ -867,6 +890,41 @@ class Game {
     }
     this.shake = Math.min(14, this.shake + 4);
     Sfx.explosion(cx);
+  }
+
+  // ---------- 皮肤 ----------
+  applySkinVisuals(f) {
+    if (!f) return;
+    const def = CFG.SKINS.find(k => k.id === (f.skin || 'classic')) || null;
+    f.skinBody = def && def.body ? def.body : null;      // null = 队伍色
+    f.skinAlpha = def && def.alpha !== undefined ? def.alpha : null;
+    f.skinEye = def && def.eye ? def.eye : null;
+    f.skinAura = def && def.aura ? def.aura : null;
+  }
+
+  setSkin(id) {
+    this.skinId = id;
+    this.applySkinVisuals(this.local);
+  }
+
+  // ---------- 状态效果 ----------
+  applyBurn(target, from, dps, dur) {
+    if (!target || !target.alive) return;
+    target.burnT = Math.max(target.burnT, dur);
+    target.burnDps = dps;
+    target.burnFrom = from;
+    FloatTexts.add('🔥', target.x, target.y - target.h - 6, { color: '#ff7a3c', size: 13, life: 0.6 });
+  }
+
+  applySlow(target, mult, dur) {
+    if (!target || !target.alive) return;
+    target.slowT = Math.max(target.slowT, dur);
+    FloatTexts.add('❄ 减速', target.x, target.y - target.h - 6, { color: '#7cd0ff', size: 13, life: 0.6 });
+  }
+
+  // ---------- 皮肤 ----------
+  setSkin(id) {
+    if (this.local) this.local.skin = id;
   }
 
   // ---------- 坦克 ----------

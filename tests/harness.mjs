@@ -503,12 +503,15 @@ assert(CFG.WEAPONS.prism && CFG.WEAPONS.prism.chain === 3 && CFG.WEAPONS.prism.m
   '光棱枪配置正确(Lv.7 / 连锁 3)');
 game.startSolo({ enemies: 3, allies: 0, difficulty: 'weak', weapon: 'prism', name: '测试兵' });
 game.aimAssist = 0;
+Input.clear();
+// 固定在中央矮台(610-990)的无遮挡走廊,避免随机出生点被掩体挡住弹道
+game.local.x = 700; game.local.y = 690; game.local.vy = 0;
 const bots3 = game.fighters.filter(f => f.kind === 'bot');
 assert(game.local.effGun().id === 'prism', '光棱枪已装备');
-bots3.forEach((b, i) => { b.x = game.local.x + 150 + i * 90; b.y = game.local.y; b.ai = null; b.hp = b.hpMax; });
+bots3.forEach((b, i) => { b.x = 780 + i * 60; b.y = 690; b.ai = null; b.hp = b.hpMax; b.leashX = undefined; });
 for (let i = 0; i < 60 * 6 && bots3.filter(b => b.hp < b.hpMax || !b.alive).length < 2; i++) {
-  bots3.forEach((b, k) => { b.x = game.local.x + 150 + k * 90; b.y = game.local.y; });
-  Input.mouse.x = game.local.x + 150; Input.mouse.y = game.local.y - 30;
+  bots3.forEach((b, k) => { b.x = 780 + k * 60; b.y = 690; });
+  Input.mouse.x = 780; Input.mouse.y = 660;
   Input.mouse.down = true;
   game.frame(DT); Input.endFrame();
 }
@@ -566,7 +569,23 @@ game.profile = { xp: 0, stage: 1 };     // 回到 Lv.1
 assert(game.unlockedWeapons().length === 1 && game.trySwitchWeapon(game.local, 1) === false,
   '低等级只能使用 M249,其余按键无效');
 
-// ---- 菜单模式下也能空转(渲染背景) ----
+// ---- 作者模式:只解锁「武器库里没有的」专属新武器 ----
+game.startSolo({ enemies: 0, allies: 0, difficulty: 'weak', weapon: 'm249', name: '测试兵' });
+assert(game.unlockedWeapons().indexOf('grenade') < 0, '作者模式不再解锁常规武器(榴弹仍锁定)');
+game.authorUnlocks = ['a666'];
+const uwA = game.unlockedWeapons();
+const baseCount = game.weaponOrder().filter(id => CFG.WEAPONS[id].minLevel <= game.localLevel()).length;
+assert(uwA.indexOf('a666') >= 0 && uwA.indexOf('a666') >= baseCount,
+  '作者武器追加在常规武器之后(不占数字键位)');
+const gi = uwA.indexOf('a666');
+assert(game.trySwitchWeapon(game.local, gi) && game.local.gun.id === 'a666',
+  '作者武器可在对局中切换使用(魔化火神 1320 发/分)');
+game.authorUnlocks = ['a888', 'a777', 'a9527'];
+const uwB = game.unlockedWeapons();
+assert(['a888', 'a777', 'a9527'].every(id => uwB.indexOf(id) >= 0), '多把作者武器可并存解锁');
+assert(game.local.effGun && game.local.gun.id === 'a666', '当前枪保持不变(直到主动切换)');
+
+// ---- 菜单模式下也能空转(渲染背景) ----// ---- 菜单模式下也能空转(渲染背景) ----
 game.leaveToMenu();
 for (let i = 0; i < 120; i++) { game.frame(DT); Input.endFrame(); }
 assert(game.mode === 'menu', '返回主菜单正常');

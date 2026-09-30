@@ -26,10 +26,12 @@ async function killPort(port) {                 // 自愈:清理上次残留
   } catch (e) {}
 }
 
+const REG_CODE = process.env.SGF_REG_CODE !== undefined ? process.env.SGF_REG_CODE : 'sgf2026';
+
 async function authToken(baseUrl, name, pass) {   // 先注册,已存在则登录
   let r = await fetch(baseUrl + '/api/register', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, pass }),
+    body: JSON.stringify({ name, pass, code: REG_CODE }),
   });
   if (r.status === 409) {
     r = await fetch(baseUrl + '/api/login', {

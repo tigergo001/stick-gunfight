@@ -47,19 +47,23 @@ try {
   }
   assert(ready, '服务器已就绪');
 
-  // 注册校验
-  let r = await post('/api/register', { name: USER, pass: 'pass1234' });
-  let d = await r.json();
+  // 注册校验(默认注册口令: sgf2026)
+  let r, d;
+  r = await post('/api/register', { name: USER, pass: 'pass1234', code: 'wrongcode' });
+  assert(r.status === 403, '注册口令错误被拒绝(403)');
+
+  r = await post('/api/register', { name: USER, pass: 'pass1234', code: 'sgf2026' });
+  d = await r.json();
   assert(r.ok && d.ok && d.token && d.name === USER, '注册成功并返回令牌');
   const TOKEN = d.token;
 
-  r = await post('/api/register', { name: USER, pass: 'pass1234' });
+  r = await post('/api/register', { name: USER, pass: 'pass1234', code: 'sgf2026' });
   assert(r.status === 409, '重复注册同名账号被拒绝(409)');
 
-  r = await post('/api/register', { name: 'x', pass: 'pass1234' });
+  r = await post('/api/register', { name: 'x', pass: 'pass1234', code: 'sgf2026' });
   assert(r.status === 400, '用户名过短被拒绝(400)');
 
-  r = await post('/api/register', { name: USER + 'b', pass: '123' });
+  r = await post('/api/register', { name: USER + 'b', pass: '123', code: 'sgf2026' });
   assert(r.status === 400, '密码过短被拒绝(400)');
 
   // 登录校验

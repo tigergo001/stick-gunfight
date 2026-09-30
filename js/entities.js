@@ -50,6 +50,10 @@ class Fighter {
     this.tempGun = null;        // 限时武器(spread/laser)
     this.tempGunT = 0;
     this.invulT = 0;            // 无敌
+    // 状态效果
+    this.burnT = 0; this.burnDps = 0; this.burnFrom = null;   // 灼烧
+    this.slowT = 0;                                             // 冰冻减速
+    this.skin = null;                                           // 皮肤 id
   }
 
   get color() { return this.team === 'blue' ? CFG.COLORS.BLUE : CFG.COLORS.RED; }
@@ -57,11 +61,23 @@ class Fighter {
   // 当前生效武器(限时强化优先)
   effGun() { return this.tempGunT > 0 && CFG.WEAPONS[this.tempGun] ? CFG.WEAPONS[this.tempGun] : this.gun; }
 
-  updateCommon(dt) {
+  updateCommon(dt, game) {
     this.animT += dt;
     this.muzzleT -= dt;
     this.protect -= dt;
     this.invulT -= dt;
+    if (this.burnT > 0) {        // 灼烧跳伤
+      this.burnT -= dt;
+      if (game && this.alive && this.invulT <= 0) {
+        const before = this.hp;
+        game.damage(this, this.burnDps * dt, this.burnFrom);
+        if (this.hp < before && Math.random() < 0.3) {
+          Particles && Particles.spawn({ type: 'dot', x: this.x + rand(-8, 8), y: this.y - this.h * 0.6, vx: rand(-10, 10), vy: -rand(30, 70), size: rand(1.5, 3), color: '#ff7a3c', life: 0.4 });
+        }
+      }
+      if (this.burnT <= 0) this.burnFrom = null;
+    }
+    if (this.slowT > 0) this.slowT -= dt;
     if (this.tempGunT > 0) {
       this.tempGunT -= dt;
       if (this.tempGunT <= 0) { this.tempGun = null; this.tempGunT = 0; if (this.kind === 'local') Sfx.reloadEnd(); }

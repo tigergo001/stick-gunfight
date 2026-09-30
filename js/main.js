@@ -81,7 +81,7 @@ function init() {
     if (pass.length < 4) return setLoginStatus('密码至少 4 位', true);
     setLoginStatus(action === 'register' ? '注册中…' : '登录中…');
     try {
-      const d = await Net.auth(action, name, pass);
+      const d = await Net.auth(action, name, pass, action === 'register' ? ($('regCode') ? $('regCode').value.trim() : '') : undefined);
       nameInput.value = d.name;
       hideLogin();
       showMenu();
@@ -123,7 +123,7 @@ function init() {
 
   // 单人(游戏逻辑优先,音效失败绝不阻断开局)
   $('btnSolo').addEventListener('click', () => {
-    game.startSolo({ enemies: enemyN, allies: allyN, difficulty, weapon: weaponId, name: playerName(), profile });
+    game.startSolo({ enemies: enemyN, allies: allyN, difficulty, weapon: weaponId, skin: skinId, name: playerName(), profile });
     hideMenu();
     Input.clear();
     try { Sfx.init(); Sfx.resume(); Sfx.ui(); } catch (e) {}
@@ -182,14 +182,21 @@ function init() {
     const lvl = profile ? CFG.levelFromXp(profile.xp) : 1;
     const list = $('weaponList');
     list.innerHTML = '';
-    for (const id of Object.keys(CFG.WEAPONS)) {
+    const authorIds = game.authorWeapons ? game.authorWeapons() : [];
+    const showIds = Object.keys(CFG.WEAPONS).filter(id => {
       const w = CFG.WEAPONS[id];
-      if (w.temp) continue; // 限时强化枪不进入武器库(靠补给掉落)
-      const locked = lvl < w.minLevel;
+      if (w.temp) return false;
+      if (w.hidden) return authorIds.indexOf(id) >= 0; // 隐藏武器:作者解锁后才出现
+      return true;
+    });
+    for (const id of showIds) {
+      const w = CFG.WEAPONS[id];
+      const authorOk = authorIds.indexOf(id) >= 0;
+      const locked = authorOk ? false : lvl < w.minLevel;
       const el = document.createElement('div');
-      el.className = 'wcard' + (id === weaponId ? ' selected' : '') + (locked ? ' locked' : '');
+      el.className = 'wcard' + (authorOk ? ' author' : '') + (id === weaponId ? ' selected' : '') + (locked ? ' locked' : '');
       el.innerHTML =
-        '<div class="wname">' + w.name + '</div>' +
+        '<div class="wname">' + (authorOk ? '★ ' : '') + w.name + '</div>' +
         '<div class="wdesc">' + (locked ? '🔒 Lv.' + w.minLevel + ' 解锁' : w.desc) + '</div>' +
         '<div class="wstats">' + statBar('伤害', w.dmg / 50) + statBar('射速', w.rpm / 900) + '</div>';
       el.addEventListener('click', () => {
@@ -217,6 +224,7 @@ function init() {
     campStage = clamp(campStage, 1, Math.min(profile ? profile.stage : 1, CFG.CAMPAIGN_TOTAL));
     $('campStage').textContent = String(campStage);
     renderWeapons();
+    renderSkins();
   };
   const loadProfile = async () => {
     profile = await Net.fetchProfile(playerName());
@@ -226,11 +234,112 @@ function init() {
     }
     refreshProfileUI();
   };
+  // ===== 作者模式:输入数字解锁「武器库里没有的」新武器 =====
+  // 666=魔化火神 888=黄金狙击 777=奇点棱镜 9527=湮灭炮 520=全部 111=清除
+  const AUTHOR_KEY = 'sgf_author_unlocks';
+  const authorList = () => {
+    try { return JSON.parse(localStorage.getItem(AUTHOR_KEY) || '[]'); } catch (e) { return []; }
+  };
+  const saveAuthor = (arr) => {
+    try { localStorage.setItem(AUTHOR_KEY, JSON.stringify(arr)); } catch (e) {}
+    game.authorUnlocks = arr.slice();
+  };
+  game.authorUnlocks = authorList();
+
+  const setAuthorStatus = (msg, cls) => {
+    const st = $('authorStatus');
+    st.textContent = msg;
+    st.className = cls || '';
+  };
+  const applyAuthorCode = () => {
+    const code = ($('authorCode').value || '').trim();
+    $('authorCode').value = '';
+    if (!code) return;
+    const cur = authorList();
+    if (code === '520') {
+      Object.keys(CFG.WEAPONS).forEach(id => {
+        if (CFG.WEAPONS[id].hidden && cur.indexOf(id) < 0) cur.push(id);
+      });
+      saveAuthor(cur);
+      game.authorUnlocks = cur.slice();
+      setAuthorStatus('🔓 作者模式:全部专属武器已解锁', 'ok');
+    } else if (code === '111') {
+      saveAuthor([]);
+      game.authorUnlocks = [];
+      setAuthorStatus('作者模式:已清除全部解锁', '');
+    } else if (/^\d+$/.test(code)) {
+      const skinHit = CFG.SKINS.find(k => k.unlock && k.unlock.code === parseInt(code, 10));
+      if (skinHit) {
+        try { localStorage.setItem('sgf_skin_' + skinHit.unlock.code, '1'); } catch (e) {}
+        skinId = skinHit.id;
+        try { localStorage.setItem('sgf_skin', skinId); } catch (e) {}
+        setAuthorStatus('🔓 已解锁皮肤「' + skinHit.name + '」并穿戴', 'ok');
+        renderWeapons();
+        renderSkins();
+        return;
+      }
+      const hit = Object.keys(CFG.WEAPONS).filter(id => CFG.WEAPONS[id].authorCode === parseInt(code, 10));
+      if (hit.length) {
+        hit.forEach(id => { if (cur.indexOf(id) < 0) cur.push(id); });
+        saveAuthor(cur);
+        game.authorUnlocks = cur.slice();
+        setAuthorStatus('🔓 已解锁 ' + hit.map(id => CFG.WEAPONS[id].name).join(' / '), 'ok');
+      } else {
+        setAuthorStatus('代码 ' + code + ' 没有对应的专属武器', 'err');
+      }
+    } else {
+      setAuthorStatus('请输入数字代码', 'err');
+    }
+    renderWeapons();
+    try { Sfx.ui(); } catch (e) {}
+  };
+  $('btnAuthor').addEventListener('click', applyAuthorCode);
+  $('authorCode').addEventListener('keydown', (e) => { if (e.key === 'Enter') applyAuthorCode(); });
+
+  // ===== 皮肤选择 =====
+  const skinUnlocked = (sk) => {
+    if (!sk.unlock) return true;
+    if (sk.unlock.level) return CFG.levelFromXp(profile ? profile.xp : 0) >= sk.unlock.level;
+    try { return (localStorage.getItem('sgf_skin_' + sk.unlock.code) === '1'); } catch (e) { return false; }
+  };
+  const skinUnlockedByCode = (code) => {
+    const sk = CFG.SKINS.find(k => k.unlock && k.unlock.code === code);
+    return sk ? sk.id : null;
+  };
+  let skinId = 'classic';
+  try { skinId = localStorage.getItem('sgf_skin') || 'classic'; } catch (e) {}
+
+  const renderSkins = () => {
+    const box = $('skinList');
+    if (!box) return;
+    box.innerHTML = '';
+    for (const sk of CFG.SKINS) {
+      const unlocked = skinUnlocked(sk);
+      const el = document.createElement('div');
+      el.className = 'skchip' + (sk.id === skinId ? ' selected' : '') + (unlocked ? '' : ' locked');
+      el.innerHTML = '<span class="dot" style="background:' + (sk.body === 'rainbow'
+        ? 'conic-gradient(#ff5d5d,#ffd24a,#5ddc6a,#4da3ff,#d78cff,#ff5d5d)'
+        : (sk.body || '#9fb0c8')) + '"></span>' + sk.name;
+      el.addEventListener('click', () => {
+        if (!unlocked) {
+          el.classList.add('shake');
+          setTimeout(() => el.classList.remove('shake'), 450);
+          return;
+        }
+        skinId = sk.id;
+        try { localStorage.setItem('sgf_skin', skinId); } catch (e) {}
+        renderSkins();
+        try { Sfx.ui(); } catch (e) {}
+      });
+      box.appendChild(el);
+    }
+  };
+
   $('campMinus').addEventListener('click', () => { campStage = clamp(campStage - 1, 1, profile ? profile.stage : 1); refreshProfileUI(); Sfx.ui(); });
   $('campPlus').addEventListener('click', () => { campStage = clamp(campStage + 1, 1, Math.min(profile ? profile.stage : 1, CFG.CAMPAIGN_TOTAL)); refreshProfileUI(); Sfx.ui(); });
   $('btnCampaign').addEventListener('click', () => {
     Sfx.init(); Sfx.resume(); Sfx.ui();
-    game.startCampaign(campStage, { weapon: weaponId, name: playerName(), profile });
+    game.startCampaign(campStage, { weapon: weaponId, skin: skinId, name: playerName(), profile });
     hideMenu();
     Input.clear();
   });
@@ -241,13 +350,14 @@ function init() {
     $('onlineOpts').classList.toggle('hidden');
     Sfx.ui();
   });
-  const joinOnline = () => {
+  const joinOnline = (roomOverride) => {
     const url = (srvInput.value || '').trim() || defaultServerUrl();
-    const room = (roomInput.value || '').trim().toUpperCase() || 'ROOM1';
+    const room = (String(roomOverride || roomInput.value || '')).trim().toUpperCase() || 'ROOM1';
+    if (roomOverride) roomInput.value = room; // 接受邀请进入时同步显示房间号
     status('连接中 ' + url + ' …');
     try { Sfx.init(); Sfx.resume(); } catch (e) {}
     Net.connect(url, room, playerName()).then((w) => {
-      game.startOnline(w, weaponId);
+      game.startOnline(w, weaponId, skinId);
       game.profile = profile;
       hideMenu();
       Input.clear();
@@ -256,8 +366,53 @@ function init() {
       status('✗ ' + e.message + '(请确认已运行 node server.js)', true);
     });
   };
-  $('btnJoin').addEventListener('click', joinOnline);
+  $('btnJoin').addEventListener('click', () => joinOnline());
   roomInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') joinOnline(); });
+
+  // 好友对战邀请(回调挂 Net 实例属性;Net.handlers 会被 game.js 的 _wireNet 整体替换)
+  const invToast = $('invToast'), invText = $('invText');
+  let invHideT = 0;
+  const hideInvToast = () => {
+    invToast.classList.add('hidden');
+    if (invHideT) { clearTimeout(invHideT); invHideT = 0; }
+  };
+  $('btnInvite').addEventListener('click', () => {
+    if (!Net.open) return status('请先加入联机房间,再邀请好友', true);
+    const to = ($('invName').value || '').trim();
+    if (!to) return status('请填写对方用户名', true);
+    Net.sendInvite(to);
+    $('btnInvite').disabled = true; // 防连点
+    setTimeout(() => { $('btnInvite').disabled = false; }, 2000);
+    Sfx.ui();
+  });
+  $('btnInvYes').addEventListener('click', () => {
+    const inv = Net.pinv;
+    hideInvToast(); Net.pinv = null;
+    if (!inv) return;
+    Sfx.ui();
+    Net.answerInvite(1);
+    Net.close(); // 主动换房:close 已置 open=false,onclose 不会触发"断开连接"提示
+    joinOnline(inv.room);
+  });
+  $('btnInvNo').addEventListener('click', () => {
+    const inv = Net.pinv;
+    hideInvToast(); Net.pinv = null;
+    if (inv) Net.answerInvite(0);
+    Sfx.ui();
+  });
+  Net.onInvite = (d) => {
+    invText.textContent = d.from + ' 邀请你加入房间 ' + d.room;
+    invToast.classList.remove('hidden');
+    if (invHideT) clearTimeout(invHideT);
+    invHideT = setTimeout(hideInvToast, 60000); // 60 秒不答复自动隐藏(与服务器过期时间一致)
+    Sfx.ui();
+  };
+  Net.onInviteAck = (d) => status(d.ok ? '邀请已发送,等待对方回应…' : '✗ ' + (d.err || '邀请发送失败'), !d.ok);
+  Net.onInviteResult = (d) => {
+    if (d.ok) status('对方已接受你的邀请');
+    else status('对方拒绝了你的对战邀请', true);
+  };
+  Net.onInviteGone = hideInvToast;
 
   // Esc 菜单 / 返回
   btnResume.addEventListener('click', () => {
@@ -281,12 +436,26 @@ function init() {
   // ?autoclick=btnSolo 可模拟真实点击按钮(用于回归测试按钮链路)
   try {
     const q = new URLSearchParams(location.search);
+    if (q.has('menu')) {   // 调试:登录后停留在主菜单(验证 UI)
+      (async () => {
+        try { await Net.auth('login', '演示作者', 'demo1234'); } catch (e) {}
+        if (!Net.token()) {
+          try { await Net.auth('register', '演示作者', 'demo1234', ($('regCode') || {}).value || ''); } catch (e) {}
+        }
+        if (!Net.token()) return;
+        nameInput.value = Net.user();
+        hideLogin();
+        showMenu();
+        loadProfile();
+      })();
+      return;
+    }
     if (q.has('solo') || q.has('camp')) {
       // 调试/QA 直达:自动创建演示账号(仍走服务器注册,不绕过账号体系)
       (async () => {
+        try { await Net.auth('login', '演示作者', 'demo1234'); } catch (e) {}
         if (!Net.token()) {
-          const u = '演示' + (Math.floor(Math.random() * 9000) + 1000);
-          try { await Net.auth('register', u, 'demo1234'); } catch (e) {}
+          try { await Net.auth('register', '演示作者', 'demo1234', ($('regCode') || {}).value || ''); } catch (e) {}
         }
         if (!Net.token()) return;
         nameInput.value = Net.user();

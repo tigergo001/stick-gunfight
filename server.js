@@ -55,6 +55,8 @@ const JSON_DB = path.join(DATA_DIR, 'profiles.json');
 const crypto = require('crypto');
 const tokens = new Map();                      // token -> { name, exp }
 const TOKEN_TTL = 1000 * 60 * 60 * 12;         // 12 小时
+// 注册口令:注册时必须填写(SGF_REG_CODE 环境变量可覆盖;设为空串则关闭校验)
+const REG_CODE = process.env.SGF_REG_CODE !== undefined ? String(process.env.SGF_REG_CODE) : 'sgf2026';
 function hashPass(pass, salt) {
   return crypto.scryptSync(String(pass), String(salt), 32).toString('hex');
 }
@@ -65,16 +67,34 @@ function ensureUsers() {
   }
 }
 try { ensureUsers(); } catch (e) {}
+const USERS_JSON = path.join(DATA_DIR, 'users.json');
+function readUsersJson() {
+  try { return JSON.parse(fs.readFileSync(USERS_JSON, 'utf8')); } catch (e) { return {}; }
+}
+function writeUsersJson(all) {
+  try {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+    fs.writeFileSync(USERS_JSON, JSON.stringify(all));
+  } catch (e) {}
+}
 function getUser(name) {
-  if (!db) return null;
-  const row = db.prepare('SELECT * FROM users WHERE name = ?').get(name);
-  return row || null;
+  if (db) {
+    const row = db.prepare('SELECT * FROM users WHERE name = ?').get(name);
+    return row || null;
+  }
+  return readUsersJson()[name] || null;   // JSON 回退:{ name: { salt, hash, created } }
 }
 function createUser(name, pass) {
   const salt = crypto.randomBytes(12).toString('hex');
   const hash = hashPass(pass, salt);
-  db.prepare('INSERT INTO users (name, salt, hash, created) VALUES (?,?,?,?)')
-    .run(name, salt, hash, Date.now());
+  if (db) {
+    db.prepare('INSERT INTO users (name, salt, hash, created) VALUES (?,?,?,?)')
+      .run(name, salt, hash, Date.now());
+    return;
+  }
+  const all = readUsersJson();
+  all[name] = { salt, hash, created: Date.now() };
+  writeUsersJson(all);
 }
 function verifyUser(name, pass) {
   const u = getUser(name);
@@ -160,8 +180,8 @@ function handleAuthApi(req, res, action) {
     const pass = String(b.pass || '');
     if (name.length < 2) return json(400, { ok: false, err: '用户名至少 2 个字符' });
     if (pass.length < 4) return json(400, { ok: false, err: '密码至少 4 位' });
-    if (!db) return json(503, { ok: false, err: '服务器数据库不可用' });
     if (action === 'register') {
+      if (REG_CODE && String(b.code || '') !== REG_CODE) return json(403, { ok: false, err: '注册口令错误' });
       if (getUser(name)) return json(409, { ok: false, err: '用户名已被注册' });
       createUser(name, pass);
       return json(200, { ok: true, name, token: issueToken(name), profile: getProfile(name) });
@@ -328,10 +348,13 @@ function dropConn(conn) {
   try { conn.socket.end(); } catch (e) {}
   try { conn.socket.destroy(); } catch (e) {}
   if (conn.player) removeFromRoom(conn.player);
+  // 清理在线表(守卫:同名旧连接掉线时不误删新登记)
+  if (conn.uname && onlineConns.get(conn.uname) === conn) onlineConns.delete(conn.uname);
 }
 
 // ---------------- 房间 / 玩家 ----------------
 const rooms = new Map(); // code -> { players: Map<id, player> }
+const onlineConns = new Map(); // 完整用户名 -> 已加入房间的连接(好友邀请用)
 let uid = 0;
 
 function roomBalancedTeam(room) {
@@ -426,6 +449,10 @@ function onText(conn, str) {
       respawnTO: null,
     };
     conn.player = player;
+    // 登记在线表(uname 是完整用户名;player.name 是展示名 slice(0,10))
+    conn.uname = uname;
+    conn.ivt = null; // 每连接一个待答复邀请槽位
+    onlineConns.set(uname, conn);
     room.players.set(player.id, player);
     send(conn, {
       t: 'welcome', id: player.id, name: player.name, team: player.team,
@@ -433,6 +460,37 @@ function onText(conn, str) {
       players: roster(room), ...teamScores(room),
     });
     broadcast(room, { t: 'join', p: { i: player.id, n: player.name, tm: player.team } }, player.id);
+    return;
+  }
+
+  // ---- 好友对战邀请(需已入房;受邀者收到后用 irs 答复) ----
+  if (msg.t === 'ivt') {
+    if (!conn.player || !conn.uname) return send(conn, { t: 'iack', ok: 0, err: '请先加入房间再发送邀请' });
+    const to = String(msg.to || '').trim().slice(0, 16);
+    if (!to || to === conn.uname) return send(conn, { t: 'iack', ok: 0, err: to ? '不能邀请自己' : '请填写对方用户名' });
+    // 限频挂在 conn 上:10 秒窗口最多 5 条 + 同目标 5 秒冷却
+    const now = Date.now();
+    conn.ivtWin = (conn.ivtWin || []).filter(ts => now - ts < 10000);
+    if (conn.ivtWin.length >= 5) return send(conn, { t: 'iack', ok: 0, err: '发送太频繁,请稍后再试' });
+    if (conn.lastTo === to && now - (conn.lastToTs || 0) < 5000) return send(conn, { t: 'iack', ok: 0, err: '邀请已发送,请等待对方回应' });
+    const tc = onlineConns.get(to);
+    if (!tc || tc.closed) return send(conn, { t: 'iack', ok: 0, err: '对方不在线(需已加入联机房间)' });
+    conn.ivtWin.push(now);
+    conn.lastTo = to; conn.lastToTs = now;
+    tc.ivt = { from: conn.uname, room: conn.player.roomCode, exp: now + 60000 }; // 新邀请覆盖旧槽
+    send(tc, { t: 'ivt', from: conn.player.name, room: conn.player.roomCode });
+    return send(conn, { t: 'iack', ok: 1 });
+  }
+
+  // ---- 邀请答复(不要求已入房;先取后清,天然防重放) ----
+  if (msg.t === 'irs') {
+    const iv = conn.ivt;
+    conn.ivt = null;
+    if (!iv || Date.now() > iv.exp) return; // 无邀请/已过期:静默丢弃
+    const ic = onlineConns.get(iv.from);
+    if (!ic || ic.closed) return; // 邀请人已掉线
+    const ok = msg.ok ? 1 : 0;
+    send(ic, ok ? { t: 'irs', from: iv.from, ok: 1, room: iv.room } : { t: 'irs', from: iv.from, ok: 0 });
     return;
   }
 

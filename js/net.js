@@ -9,6 +9,12 @@ const Net = {
   latency: 0,
   _sendT: 0,
   _pingT: 0,
+  // 好友邀请(钩子挂实例属性;handlers 会被 game.js 的 _wireNet 整体替换)
+  pinv: null, // 最近收到的邀请 { from, room }
+  onInvite: null,
+  onInviteAck: null,
+  onInviteResult: null,
+  onInviteGone: null,
 
   connect(url, room, name) {
     return new Promise((resolve, reject) => {
@@ -41,6 +47,19 @@ const Net = {
           resolve(d);
           return;
         }
+        if (d.t === 'ivt') { // 收到对战邀请(挂实例属性而非 handlers,避免被 _wireNet 整体替换吞掉)
+          this.pinv = d;
+          this.onInvite && this.onInvite(d);
+          return;
+        }
+        if (d.t === 'iack') { // 邀请发送回执
+          this.onInviteAck && this.onInviteAck(d);
+          return;
+        }
+        if (d.t === 'irs') { // 对方接受/拒绝邀请
+          this.onInviteResult && this.onInviteResult(d);
+          return;
+        }
         const h = this.handlers[d.t];
         if (h) h(d);
       };
@@ -50,6 +69,8 @@ const Net = {
       ws.onclose = () => {
         const was = this.open;
         this.open = false;
+        this.pinv = null;
+        this.onInviteGone && this.onInviteGone();
         if (!settled) { settled = true; clearTimeout(to); reject(new Error('连接已关闭')); }
         else if (was && this.handlers.close) this.handlers.close();
       };
@@ -80,6 +101,10 @@ const Net = {
     this.send({ t: 'bhit', id, dmg: Math.round(dmg), x: Math.round(x), y: Math.round(y) });
   },
 
+  // ===== 好友对战邀请 =====
+  sendInvite(to) { this.send({ t: 'ivt', to }); },
+  answerInvite(ok) { this.send({ t: 'irs', ok: ok ? 1 : 0 }); },
+
   // ===== 登录会话(令牌) =====
   token() { try { return localStorage.getItem('sgf_token') || ''; } catch (e) { return ''; } },
   user() { try { return localStorage.getItem('sgf_user') || ''; } catch (e) { return ''; } },
@@ -90,12 +115,12 @@ const Net = {
     try { localStorage.removeItem('sgf_token'); localStorage.removeItem('sgf_user'); } catch (e) {}
   },
   logout() { this.clearSession(); this.close(); },
-  // 注册 / 登录(action: 'login' | 'register')
-  async auth(action, name, pass) {
+  // 注册 / 登录(action: 'login' | 'register';code 仅注册时的口令)
+  async auth(action, name, pass, code) {
     const r = await fetch('/api/' + action, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, pass }),
+      body: JSON.stringify({ name, pass, code: code || undefined }),
     });
     const d = await r.json().catch(() => ({}));
     if (!r.ok || !d.ok) throw new Error(d.err || '连接失败(' + r.status + ')');

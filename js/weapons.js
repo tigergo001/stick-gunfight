@@ -27,6 +27,8 @@ const Bullets = {
         pierce: !!g.pierce, hitIds: g.pierce ? [] : null,
         chain: g.chain || 0, chainRange: g.chainRange || 0, chainFalloff: g.chainFalloff || 1,
         fuse: g.fuse || 0, pierceArmor: !!g.pierceArmor,
+        burn: g.burn || null, slow: g.slow || null, knock: g.knock || 0,
+        homing: !!g.homing, turn: g.turn || 0,
         color: g.id === 'laser' ? '#7ce8ff' : g.id === 'tesla' ? '#9fe8ff' : g.id === 'plasma' ? '#d9c0ff'
           : g.id === 'prism' ? '#b98cff' : g.id === 'spread' ? '#ffe28a'
           : g.id === 'grenade' ? '#c9e07a' : (g.explosive ? '#ff9636' : null),
@@ -62,6 +64,24 @@ const Bullets = {
     for (let i = list.length - 1; i >= 0; i--) {
       const b = list[i];
       b.px = b.x; b.py = b.y;
+      // 追踪:朝最近的敌对目标缓慢转向
+      if (b.homing && b.team !== null) {
+        let best = null, bd = 900;
+        for (const f of game.fighters) {
+          if (!f.alive || f === b.owner || f.team === b.team) continue;
+          const d = dist(b.x, b.y, f.x, f.y - 30);
+          if (d < bd) { bd = d; best = f; }
+        }
+        if (best) {
+          const cur = Math.atan2(b.vy, b.vx);
+          const want = Math.atan2(best.y - 30 - b.y, best.x - b.x);
+          const diff = angNorm(want - cur);
+          const na = cur + clamp(diff, -b.turn * dt, b.turn * dt);
+          const sp = Math.hypot(b.vx, b.vy);
+          b.vx = Math.cos(na) * sp; b.vy = Math.sin(na) * sp;
+          if (Math.random() < 0.5) Particles.smoke(b.x, b.y);
+        }
+      }
       b.x += b.vx * dt; b.y += b.vy * dt;
       b.life -= dt;
 
@@ -154,8 +174,17 @@ const Bullets = {
             };
           } else {
             hitT = t;
-            hitFn = () => game.applyHit(b.owner, f, b.dmg * (head ? (b.owner ? b.owner.effGun().headMult : 1.7) : 1),
-              head, hx, hy, ang);
+            hitFn = () => {
+              game.applyHit(b.owner, f, b.dmg * (head ? (b.owner ? b.owner.effGun().headMult : 1.7) : 1),
+                head, hx, hy, ang);
+              if (b.burn) game.applyBurn(f, b.owner, b.burn.dps, b.burn.dur);
+              if (b.slow) game.applySlow(f, b.slow.mult, b.slow.dur);
+              if (b.knock) { // 音波击退
+                const ka = Math.atan2(b.vy, b.vx);
+                f.vx += Math.cos(ka) * b.knock;
+                f.vy -= b.knock * 0.4;
+              }
+            };
           }
         }
       }

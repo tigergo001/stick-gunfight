@@ -37,6 +37,8 @@ class ThreadingHTTPServer(socketserver.ThreadingMixIn, HTTPServer):
     daemon_threads = True
 
 PORT = int(os.environ.get('PORT', '8081'))
+# 注册口令:注册时必须填写(SGF_REG_CODE 环境变量可覆盖;设为空串则关闭校验),与 server.js 一致
+REG_CODE = os.environ['SGF_REG_CODE'] if 'SGF_REG_CODE' in os.environ else 'sgf2026'
 ROOT = os.environ.get('SGF_ROOT') or os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MAX_PLAYERS = 10
 WS_GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
@@ -160,6 +162,7 @@ def update_profile(name, b):
     return p
 
 rooms = {}          # code -> {'players': {id: P}, 'barrels': [...]}
+online = {}         # 完整用户名 -> 已加入房间的连接(好友邀请用)
 uid = [0]
 lock = threading.RLock()
 
@@ -213,6 +216,10 @@ def drop(conn):
         with lock:
             remove_from_room(conn.player)
             conn.player = None
+    # 清理在线表(守卫:同名旧连接掉线时不误删新登记)
+    if getattr(conn, 'uname', None) and online.get(conn.uname) is conn:
+        with lock:
+            online.pop(conn.uname, None)
 
 
 # ---------------- 房间逻辑 ----------------
@@ -378,6 +385,10 @@ def on_text(conn, text):
                 'x': spawn['x'], 'y': spawn['y'],
             }
             conn.player = player
+            # 登记在线表(uname 是完整用户名;player['name'] 是展示名 [:10])
+            conn.uname = uname
+            conn.ivt = None  # 每连接一个待答复邀请槽位
+            online[uname] = conn
             room['players'][player['id']] = player
             conn.send({
                 't': 'welcome', 'id': player['id'], 'name': player['name'],
@@ -387,6 +398,47 @@ def on_text(conn, text):
             })
             broadcast(room, {'t': 'join', 'p': {'i': player['id'], 'n': player['name'],
                                                'tm': player['team']}}, player['id'])
+            return
+
+        # ---- 好友对战邀请(需已入房;受邀者收到后用 irs 答复) ----
+        if msg['t'] == 'ivt':
+            if conn.player is None or not getattr(conn, 'uname', None):
+                return conn.send({'t': 'iack', 'ok': 0, 'err': '请先加入房间再发送邀请'})
+            to = str(msg.get('to', '')).strip()[:16]
+            if not to or to == conn.uname:
+                return conn.send({'t': 'iack', 'ok': 0,
+                                  'err': '不能邀请自己' if to else '请填写对方用户名'})
+            # 限频挂在 conn 上:10 秒窗口最多 5 条 + 同目标 5 秒冷却
+            now = time.time()
+            conn.ivt_win = [ts for ts in getattr(conn, 'ivt_win', []) if now - ts < 10]
+            if len(conn.ivt_win) >= 5:
+                return conn.send({'t': 'iack', 'ok': 0, 'err': '发送太频繁,请稍后再试'})
+            if getattr(conn, 'last_to', None) == to and now - getattr(conn, 'last_to_ts', 0) < 5:
+                return conn.send({'t': 'iack', 'ok': 0, 'err': '邀请已发送,请等待对方回应'})
+            tc = online.get(to)
+            if tc is None or tc.closed:
+                return conn.send({'t': 'iack', 'ok': 0, 'err': '对方不在线(需已加入联机房间)'})
+            conn.ivt_win.append(now)
+            conn.last_to = to
+            conn.last_to_ts = now
+            tc.ivt = {'from': conn.uname, 'room': conn.player['room'], 'exp': now + 60}  # 新邀请覆盖旧槽
+            tc.send({'t': 'ivt', 'from': conn.player['name'], 'room': conn.player['room']})
+            return conn.send({'t': 'iack', 'ok': 1})
+
+        # ---- 邀请答复(不要求已入房;先取后清,天然防重放) ----
+        if msg['t'] == 'irs':
+            iv = getattr(conn, 'ivt', None)
+            conn.ivt = None
+            if iv is None or time.time() > iv['exp']:
+                return  # 无邀请/已过期:静默丢弃
+            ic = online.get(iv['from'])
+            if ic is None or ic.closed:
+                return  # 邀请人已掉线
+            ok = 1 if msg.get('ok') else 0
+            if ok:
+                ic.send({'t': 'irs', 'from': iv['from'], 'ok': 1, 'room': iv['room']})
+            else:
+                ic.send({'t': 'irs', 'from': iv['from'], 'ok': 0})
             return
 
         player = conn.player
@@ -579,6 +631,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(400, {'ok': False, 'err': '密码至少 4 位'})
             with lock:
                 if path_only == '/api/register':
+                    if REG_CODE and str(body.get('code', '')) != REG_CODE:
+                        return self._json(403, {'ok': False, 'err': '注册口令错误'})
                     conn = _conn()
                     exists = conn.execute('SELECT 1 FROM users WHERE name=?', (name,)).fetchone()
                     conn.close()

@@ -30,17 +30,37 @@ const CFG = {
     ak:     { id: 'ak',   name: 'AK 突击步枪', minLevel: 3, rpm: 420, dmg: 17, mag: 60,  reload: 2.0, speed: 1800, range: 1700, spreadBase: 0.008, spreadMax: 0.050, spreadPerShot: 0.014, spreadCool: 0.6, recoil: 12, headMult: 1.9, desc: '高伤精准 · 点射神器' },
     m2:     { id: 'm2',   name: 'M2 重机枪',  minLevel: 4, rpm: 300, dmg: 30, mag: 40,  reload: 3.0, speed: 1900, range: 1900, spreadBase: 0.030, spreadMax: 0.120, spreadPerShot: 0.030, spreadCool: 0.4, recoil: 22, headMult: 1.8, desc: '炮弹威力 · 火力压制' },
     sniper: { id: 'sniper', name: 'AWM 狙击枪', minLevel: 5, rpm: 55, dmg: 46, mag: 8,   reload: 2.6, speed: 2600, range: 2400, spreadBase: 0.002, spreadMax: 0.020, spreadPerShot: 0.050, spreadCool: 0.8, recoil: 30, headMult: 2.2, desc: '一击致命 · 千里之外' },
+    flame:  { id: 'flame',  name: '火焰喷射器', minLevel: 13, rpm: 600, dmg: 3,  mag: 200, reload: 2.4, speed: 520,  range: 340,  spreadBase: 0.06, spreadMax: 0.14, spreadPerShot: 0, spreadCool: 1.0, recoil: 2,  headMult: 1.0, burn: { dps: 8, dur: 3 }, desc: '持续灼烧 · 火焰舔舐' },
+    cryo:   { id: 'cryo',   name: '冰冻枪',     minLevel: 14, rpm: 220, dmg: 9,  mag: 40,  reload: 2.0, speed: 1600, range: 900,  spreadBase: 0.01, spreadMax: 0.05, spreadPerShot: 0.01, spreadCool: 0.8, recoil: 5,  headMult: 1.2, slow: { mult: 0.5, dur: 2 }, desc: '冰冻减速 · 控制全场' },
+    homing: { id: 'homing', name: '追踪导弹',   minLevel: 15, rpm: 45,  dmg: 55, mag: 4,   reload: 3.0, speed: 600,  range: 2000, spreadBase: 0.02, spreadMax: 0.05, spreadPerShot: 0.01, spreadCool: 0.7, recoil: 14, headMult: 1.0, explosive: true, blastR: 90, blastDmg: 40, homing: true, turn: 3.2, desc: '自动追踪 · 指哪打哪' },
+    sonic:  { id: 'sonic',  name: '音波炮',     minLevel: 16, rpm: 50,  dmg: 26, mag: 12,  reload: 2.2, speed: 1000, range: 800,  spreadBase: 0, spreadMax: 0, spreadPerShot: 0, spreadCool: 1.0, recoil: 10, headMult: 1.0, pierce: true, knock: 520, beam: true, desc: '音波冲击 · 击飞穿透' },
     shotgun:{ id: 'shotgun', name: '霰弹枪',   minLevel: 8, rpm: 75,  dmg: 11, mag: 6,   reload: 2.6, speed: 1300, range: 620,  spreadBase: 0.085, spreadMax: 0.16, spreadPerShot: 0.02, spreadCool: 0.9, recoil: 26, headMult: 1.3, pellets: 8, desc: '八颗弹丸 · 贴脸蒸发' },
     grenade:{ id: 'grenade', name: '榴弹发射器', minLevel: 9, rpm: 80,  dmg: 34, mag: 6,   reload: 2.8, speed: 780, range: 1200, spreadBase: 0.02, spreadMax: 0.05, spreadPerShot: 0.01, spreadCool: 0.7, recoil: 18, headMult: 1.0, explosive: true, blastR: 92, blastDmg: 46, fuse: 1.1, desc: '抛射榴弹 · 延时爆炸' },
     dualsmg:{ id: 'dualsmg', name: '双持冲锋枪', minLevel: 10, rpm: 1100, dmg: 5, mag: 160, reload: 2.2, speed: 1350, range: 900,  spreadBase: 0.045, spreadMax: 0.14, spreadPerShot: 0.008, spreadCool: 0.4, recoil: 7,  headMult: 1.5, pellets: 2, desc: '双枪齐射 · 弹幕压制' },
     tesla:  { id: 'tesla',  name: '特斯拉电枪', minLevel: 11, rpm: 300, dmg: 14, mag: 60,  reload: 2.2, speed: 3000, range: 700,  spreadBase: 0.01, spreadMax: 0.04, spreadPerShot: 0.006, spreadCool: 0.8, recoil: 4,  headMult: 1.4, beam: true, chain: 5, chainRange: 260, chainFalloff: 0.8, desc: '电弧跳跃 · 连锁五人' },
     plasma: { id: 'plasma', name: '等离子炮',  minLevel: 12, rpm: 40,  dmg: 78, mag: 4,   reload: 3.0, speed: 2400, range: 2200, spreadBase: 0.0,   spreadMax: 0.02, spreadPerShot: 0.02, spreadCool: 1.0, recoil: 34, headMult: 1.6, pierce: true, pierceArmor: true, beam: true, desc: '贯穿一切 · 破甲重炮' },
+    a666:   { id: 'a666',   name: '★ 魔化火神', minLevel: 99, hidden: true, authorCode: 666,  rpm: 1320, dmg: 7,  mag: 200, reload: 1.8, speed: 1500, range: 1500, spreadBase: 0.03, spreadMax: 0.10, spreadPerShot: 0.006, spreadCool: 0.5, recoil: 6,  headMult: 1.4, pellets: 1, desc: '双管魔改 · 1320 发/分 弹雨' },
+    a888:   { id: 'a888',   name: '★ 黄金狙击', minLevel: 99, hidden: true, authorCode: 888,  rpm: 60,  dmg: 200, mag: 5,   reload: 2.4, speed: 3000, range: 2600, spreadBase: 0, spreadMax: 0, spreadPerShot: 0.03, spreadCool: 1.0, recoil: 34, headMult: 2.5, desc: '黄金涂装 · 一击必杀' },
+    a777:   { id: 'a777',   name: '★ 奇点棱镜', minLevel: 99, hidden: true, authorCode: 777,  rpm: 90,  dmg: 40, mag: 30,  reload: 2.2, speed: 4200, range: 1600, spreadBase: 0, spreadMax: 0, spreadPerShot: 0, spreadCool: 1.2, recoil: 5,  headMult: 1.5, beam: true, chain: 6, chainRange: 420, chainFalloff: 0.85, desc: '奇点折射 · 六连锁' },
+    a9527:  { id: 'a9527',  name: '★ 湮灭炮',   minLevel: 99, hidden: true, authorCode: 9527, rpm: 40,  dmg: 90, mag: 4,   reload: 3.0, speed: 2600, range: 2400, spreadBase: 0, spreadMax: 0.02, spreadPerShot: 0.02, spreadCool: 1.0, recoil: 34, headMult: 1.6, pierce: true, pierceArmor: true, beam: true, desc: '贯穿一切 · 破甲重炮' },
     prism:  { id: 'prism',  name: '光棱枪',    minLevel: 7, rpm: 90, dmg: 34, mag: 30,  reload: 2.4, speed: 4200, range: 1400, spreadBase: 0.0,   spreadMax: 0.0,   spreadPerShot: 0.0,   spreadCool: 1.2, recoil: 6,  headMult: 1.5, beam: true, chain: 3, chainRange: 340, chainFalloff: 0.7, desc: '光棱折射 · 连锁三杀' },
     rpg:    { id: 'rpg',    name: 'RPG-7 火箭筒', minLevel: 6, rpm: 24, dmg: 65, mag: 1,   reload: 2.8, speed: 900, range: 1800, spreadBase: 0.010, spreadMax: 0.030, spreadPerShot: 0.020, spreadCool: 1.0, recoil: 46, headMult: 1.0, explosive: true, blastR: 110, blastDmg: 65, desc: '范围爆炸 · 可自伤 · 克制坦克' },
     // ---- 魂斗罗式限时强化枪(补给胶囊掉落,15 秒) ----
     spread: { id: 'spread', name: 'S 散弹枪',  minLevel: 99, rpm: 300, dmg: 8,  mag: 9999, reload: 0.1, speed: 1400, range: 900,  spreadBase: 0.005, spreadMax: 0.010, spreadPerShot: 0.002, spreadCool: 2.0, recoil: 4,  headMult: 1.3, pellets: 5, temp: true, icon: 'S', color: '#ffd24a', desc: '五向散射 · 近战收割' },
     laser:  { id: 'laser',  name: 'L 激光枪',  minLevel: 99, rpm: 55,  dmg: 60, mag: 9999, reload: 0.1, speed: 3200, range: 2400, spreadBase: 0.0,   spreadMax: 0.0,   spreadPerShot: 0.0,   spreadCool: 2.0, recoil: 2,  headMult: 1.5, pierce: true, temp: true, icon: 'L', color: '#7ce8ff', desc: '穿透激光 · 一穿到底' },
   },
+  // ===== 皮肤(火柴人外观;level=等级解锁,code=作者代码解锁) =====
+  SKINS: [
+    { id: 'classic', name: '经典',   unlock: 0 },
+    { id: 'flame',   name: '烈焰',   body: '#ff7a3c', trail: 'ember', unlock: { level: 6 } },
+    { id: 'frost',   name: '冰霜',   body: '#7cd0ff', trail: 'frost', unlock: { level: 9 } },
+    { id: 'volt',    name: '电光',   body: '#ffe95c', trail: 'spark', unlock: { level: 12 } },
+    { id: 'neon',    name: '霓虹',   body: 'rainbow', trail: 'spark', unlock: { code: 2024 } },
+    { id: 'ghost',   name: '幽灵',   body: '#cfd8e8', alpha: 0.55,    unlock: { code: 1314 } },
+    { id: 'gold',    name: '黄金',   body: '#ffd24a', aura: '#ffd24a', unlock: { code: 5208 } },
+    { id: 'dark',    name: '暗黑',   body: '#23232e', eye: '#ff2a2a', aura: 'rgba(255,40,40,0.22)', unlock: { code: 999 } },
+  ],
+
   // ===== 补给胶囊(魂斗罗式掉落) =====
   POWERUPS: {
     MEDKIT: { type: 'medkit', icon: '✚', color: '#5ddc6a', label: '医疗 +50' },
