@@ -46,7 +46,7 @@ const Stickman = {
 
     ctx.save();
     ctx.globalAlpha = (f.alpha !== undefined ? f.alpha : 1);
-    if (f.skinAlpha !== undefined) ctx.globalAlpha *= f.skinAlpha;
+    if (f.skinAlpha) ctx.globalAlpha *= f.skinAlpha; // null/undefined 不影响
     // 体型缩放(巨型 BOSS)
     const sc = f.scale || 1;
     if (sc !== 1) {
