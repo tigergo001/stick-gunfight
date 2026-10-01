@@ -9,6 +9,7 @@ class Fighter {
     this.name = o.name || '战士';
     this.team = o.team || 'blue';
     this.gun = CFG.WEAPONS[o.gun] || CFG.WEAPONS.m249;
+    this.skin = o.skin || null;          // 皮肤 id(构造时必须保留,否则穿戴失效)
     this.tier = o.tier || null;          // 敌人品类:null / grunt / elite / heavy / sniper
     this.tagColor = o.tagColor || null;  // 名牌颜色(品类色)
     this.hpMax = o.hpMax || CFG.PLAYER.MAX_HP;
@@ -53,7 +54,6 @@ class Fighter {
     // 状态效果
     this.burnT = 0; this.burnDps = 0; this.burnFrom = null;   // 灼烧
     this.slowT = 0;                                             // 冰冻减速
-    this.skin = null;                                           // 皮肤 id
   }
 
   get color() { return this.team === 'blue' ? CFG.COLORS.BLUE : CFG.COLORS.RED; }

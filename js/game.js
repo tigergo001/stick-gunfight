@@ -904,6 +904,7 @@ class Game {
 
   setSkin(id) {
     this.skinId = id;
+    if (this.local) this.local.skin = id;
     this.applySkinVisuals(this.local);
   }
 
@@ -923,10 +924,6 @@ class Game {
   }
 
   // ---------- 皮肤 ----------
-  setSkin(id) {
-    if (this.local) this.local.skin = id;
-  }
-
   // ---------- 坦克 ----------
   hitTank(tank, shooter, dmg, hx, bullet) {
     let mult = CFG.TANK.BULLET_TAKEN;
